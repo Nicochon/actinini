@@ -47,6 +47,38 @@ npm run dev
 
 > Node 18.18+ requis (Next 16).
 
+## Installation sur téléphone (PWA)
+
+L'app s'installe sur l'écran d'accueil depuis le navigateur, sans store :
+
+- **Android / Chrome** — menu ⋮ → « Installer l'application »
+- **iOS / Safari** — Partager → « Sur l'écran d'accueil »
+
+Elle s'ouvre alors en plein écran, sans barre d'adresse, avec sa propre icône.
+
+**Cela demande HTTPS** : l'installation n'est proposée qu'en production (Vercel
+fournit le certificat) ou sur `localhost`. Depuis un téléphone pointant sur un
+`npm run dev` en IP locale, l'app fonctionne mais n'est pas installable.
+
+Les pièces concernées :
+
+| Fichier | Rôle |
+|---|---|
+| `src/app/manifest.ts` | nom, icônes, couleurs, `display: standalone` |
+| `public/icon-*.png` | icônes 192 et 512, plus une version *maskable* pour Android |
+| `src/app/apple-icon.png` | icône iOS (sans transparence, non recadrée) |
+| `public/sw.js` | service worker : installabilité et écran hors ligne |
+| `src/app/offline/page.tsx` | page servie quand le réseau ne répond pas |
+
+Le service worker **ne met jamais en cache une page authentifiée** : seuls les
+actifs figés de Next et la page `/offline` le sont. Les pages passent toujours
+par le réseau — sur un téléphone partagé, servir une page en cache reviendrait
+à montrer les données d'un autre compte.
+
+`/manifest.webmanifest` et `/sw.js` sont exclus du garde d'authentification
+(`src/proxy.ts`) : le navigateur les lit avant toute connexion, et les faire
+rediriger vers `/login` casserait l'installation.
+
 ## Structure
 
 ```

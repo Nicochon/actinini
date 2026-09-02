@@ -3,8 +3,11 @@ import { createServerClient } from "@supabase/ssr";
 
 import type { Database } from "@/lib/database.types";
 
-/** Chemins accessibles sans session. */
-const PUBLIC_PATHS = ["/login"];
+/**
+ * Chemins accessibles sans session. `/offline` en fait partie : le service
+ * worker la met en cache à l'installation, donc avant toute connexion.
+ */
+const PUBLIC_PATHS = ["/login", "/offline"];
 
 /**
 * Rafraîchit la session à chaque requête et redirige selon l'état de connexion.
@@ -50,7 +53,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && isPublic) {
+  if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";
