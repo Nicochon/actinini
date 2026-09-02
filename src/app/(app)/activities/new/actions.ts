@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { parseBudget, parseDates } from "@/lib/activity-input";
 import type { PaymentMode } from "@/lib/database.types";
 import { requireProfile } from "@/lib/session";
 
@@ -16,38 +17,28 @@ export type NewActivityInput = {
 
 export type CreateResult = { error?: string; activityId?: string };
 
-const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
-
 export async function createActivity(input: NewActivityInput): Promise<CreateResult> {
   const { supabase, profile } = await requireProfile();
 
-  const title = input.title.trim();
+  const title = String(input.title ?? "").trim();
   if (!title) return { error: "Donne un titre à l'activité." };
 
-  const dates = input.dates
-    .map((d) => ({ start: d.start.trim(), end: d.end.trim() }))
-    .filter((d) => d.start);
-  if (dates.some((d) => !ISO_DAY.test(d.start) || (d.end && !ISO_DAY.test(d.end)))) {
-    return { error: "Une des dates proposées est invalide." };
-  }
-  if (dates.some((d) => d.end && d.end < d.start)) {
-    return { error: "Une date de fin précède sa date de début." };
-  }
+  const parsedDates = parseDates(input.dates);
+  if (!parsedDates.ok) return { error: parsedDates.error };
+  const dates = parsedDates.value;
 
-  const budget = input.budget
-    .map((b) => ({ label: b.label.trim(), amount: Number(b.amount), mode: b.mode }))
-    .filter((b) => b.label || b.amount);
-  if (budget.some((b) => !b.label)) {
-    return { error: "Chaque ligne de budget a besoin d'un libellé." };
-  }
-  if (budget.some((b) => !Number.isFinite(b.amount) || b.amount < 0)) {
-    return { error: "Chaque ligne de budget a besoin d'un montant positif." };
-  }
+  const parsedBudget = parseBudget(input.budget);
+  if (!parsedBudget.ok) return { error: parsedBudget.error };
+  const budget = parsedBudget.value;
+
+  const participantIds = Array.isArray(input.participantIds)
+    ? input.participantIds.filter((x): x is string => typeof x === "string" && x !== "")
+    : [];
 
   // Créer l'activité. La RLS refuse ici si l'utilisateur n'est pas l'admin du groupe.
   const { data: activity, error: activityError } = await supabase
     .from("activities")
-    .insert({ title, description: input.description.trim() || null, created_by: profile.id })
+    .insert({ title, description: String(input.description ?? "").trim() || null, created_by: profile.id })
     .select("id")
     .single();
 
@@ -63,10 +54,10 @@ export async function createActivity(input: NewActivityInput): Promise<CreateRes
 
   // Les participants d'abord : le trigger des paiements se déclenche sur les
   // budget_items et ne voit que les participants déjà invités.
-  if (input.participantIds.length > 0) {
+  if (participantIds.length > 0) {
     const { error } = await supabase
       .from("activity_participants")
-      .insert(input.participantIds.map((id) => ({ activity_id: activity.id, profile_id: id })));
+      .insert(participantIds.map((id) => ({ activity_id: activity.id, profile_id: id })));
     if (error) return rollback("Les participants n'ont pas pu être invités.");
   }
 
@@ -75,7 +66,7 @@ export async function createActivity(input: NewActivityInput): Promise<CreateRes
       dates.map((d) => ({
         activity_id: activity.id,
         start_date: d.start,
-        end_date: d.end || null,
+        end_date: d.end,
       })),
     );
     if (error) return rollback("Les dates proposées n'ont pas pu être enregistrées.");
