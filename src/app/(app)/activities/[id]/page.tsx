@@ -131,7 +131,17 @@ export default async function ActivityDetailPage({
             {activity.description}
           </p>
         )}
-        <Stamp status={activity.status} />
+        <div className="flex items-center justify-between gap-3">
+          <Stamp status={activity.status} />
+          {isOwner && (
+            <Link
+              href={`/activities/${activity.id}/edit`}
+              className="border-line text-ink-soft hover:border-ink-soft rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors"
+            >
+              Modifier
+            </Link>
+          )}
+        </div>
 
         {/* ---------- Dates proposées ---------- */}
         <Perforation bleed />
