@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Design tokens — repris de prototype-app-activites.html
+   ============================================================ */
+@theme {
+  --color-paper: #f3f4f1;
+  --color-paper-raised: #ffffff;
+  --color-ink: #22281f;
+  --color-ink-hover: #3a4230;
+  --color-ink-soft: #5b6152;
+  --color-amber: #c98a2b;
+  --color-amber-deep: #8a5c16;
+  --color-amber-pale: #f3e4c6;
+  --color-sage: #6e7f5c;
+  --color-sage-deep: #4a5540;
+  --color-sage-pale: #e1e7d8;
+  --color-brick: #a8493a;
+  --color-brick-deep: #7a3428;
+  --color-brick-pale: #f0e0dd;
+  --color-line: #d6d8d2;
+  --color-line-soft: #e4e5e1;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* Les champs partagent tous le même rendu « papier ». */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  textarea,
+  select {
+    width: 100%;
+    background-color: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--color-ink);
+  }
+
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--color-sage);
+    outline-offset: 1px;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 70px;
+  }
+}
+
+@layer components {
+  /* Séparateur de section, façon perforation de ticket. */
+  .perforation {
+    border-top: 1px dashed var(--color-line);
+    margin: 22px 0 18px;
+  }
+}

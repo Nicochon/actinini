@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activités — prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F3F4F1;
+    --paper-raised:#FFFFFF;
+    --ink:#22281F;
+    --ink-soft:#5B6152;
+    --amber:#C98A2B;
+    --amber-deep:#8A5C16;
+    --sage:#6E7F5C;
+    --sage-deep:#4A5540;
+    --brick:#A8493A;
+    --brick-deep:#7A3428;
+    --line:#D6D8D2;
+    --line-soft:#E4E5E1;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    line-height:1.6;
+    min-height:100vh;
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:32px 20px 96px;}
+  header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--line);}
+  header h1{font-family:'Fraunces',serif;font-weight:500;font-size:24px;letter-spacing:-0.01em;}
+  .nav{
+    position:fixed;bottom:0;left:0;right:0;display:flex;gap:2px;
+    background:var(--paper-raised);border-top:1px solid var(--line);
+    padding:8px max(16px, calc(50% - 320px + 16px));z-index:10;
+  }
+  .nav button{
+    flex:1;background:none;border:none;font-family:'Inter',sans-serif;font-size:11px;font-weight:500;
+    color:var(--ink-soft);padding:8px 4px 6px;border-radius:8px;cursor:pointer;transition:color .15s;
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+  }
+  .nav button .dot{width:5px;height:5px;border-radius:50%;background:transparent;}
+  .nav button.active{color:var(--ink);}
+  .nav button.active .dot{background:var(--ink);}
+  .view{display:none;}
+  .view.active{display:block;}
+  .card{
+    background:var(--paper-raised);border:1px solid var(--line);border-radius:4px;
+    padding:18px 20px;margin-bottom:14px;cursor:pointer;transition:border-color .15s;
+    position:relative;
+  }
+  .card:hover{border-color:var(--ink-soft);}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+  .card-title{font-family:'Fraunces',serif;font-size:17px;font-weight:500;margin-bottom:4px;}
+  .card-meta{font-size:13px;color:var(--ink-soft);}
+  .stamp{
+    font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap;
+    border:1px solid currentColor;
+  }
+  .stamp.voting{color:var(--amber-deep);background:#F3E4C6;}
+  .stamp.confirmed{color:var(--sage-deep);background:#E1E7D8;}
+  .stamp.done{color:var(--ink-soft);background:var(--line-soft);border-color:var(--line);}
+  .empty-hint{font-size:13px;color:var(--ink-soft);margin-top:20px;text-align:center;}
+  label{display:block;font-size:13px;font-weight:500;color:var(--ink-soft);margin:18px 0 6px;}
+  label:first-child{margin-top:0;}
+  input[type=text], input[type=number], textarea, select{
+    width:100%;background:var(--paper);border:1px solid var(--line);border-radius:6px;
+    padding:10px 12px;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);
+  }
+  textarea{resize:vertical;min-height:70px;}
+  .date-row{display:flex;gap:8px;margin-bottom:8px;}
+  .date-row input{flex:1;}
+  .date-row button{background:none;border:1px solid var(--line);border-radius:6px;color:var(--brick);width:38px;cursor:pointer;}
+  .add-date{background:none;border:1px dashed var(--line);border-radius:6px;padding:9px;width:100%;color:var(--ink-soft);font-size:13px;cursor:pointer;margin-top:2px;}
+  .primary-btn{
+    background:var(--ink);color:var(--paper);border:none;border-radius:6px;padding:12px 20px;
+    font-family:'Inter',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-top:24px;width:100%;
+  }
+  .primary-btn:hover{background:#3A4230;}
+  .back-btn{
+    display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--ink-soft);
+    font-size:13px;cursor:pointer;margin-bottom:18px;font-family:'Inter',sans-serif;
+  }
+  .detail-title{font-family:'Fraunces',serif;font-size:22px;font-weight:500;margin-bottom:6px;}
+  .detail-desc{font-size:14px;color:var(--ink-soft);margin-bottom:12px;line-height:1.6;}
+  .perforation{border-top:1px dashed var(--line);margin:22px 0 18px;position:relative;}
+  .section-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin-bottom:12px;}
+  .date-option{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-soft);}
+  .date-option:last-of-type{border-bottom:none;}
+  .date-option-name{font-size:14px;font-weight:500;}
+  .date-option-voters{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .vote-btn{
+    background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:6px 14px;
+    font-size:13px;font-weight:500;cursor:pointer;color:var(--ink-soft);min-width:66px;text-align:center;
+  }
+  .vote-btn.voted{background:var(--sage);border-color:var(--sage-deep);color:#fff;}
+  .confirm-line{display:flex;justify-content:flex-end;margin-top:10px;}
+  .confirm-line button{background:none;border:1px solid var(--sage-deep);color:var(--sage-deep);border-radius:6px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;}
+  .budget-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-soft);}
+  .budget-row:last-child{border-bottom:none;}
+  .budget-amount{font-family:'Fraunces',serif;font-size:16px;font-weight:500;}
+  .budget-sub{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .participants{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:13px;}
+  .profile-card{background:var(--paper-raised);border:1px solid var(--line);border-radius:6px;padding:20px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Nos activités</h1>
+  </header>
+
+  <div class="nav">
+    <button class="active" data-view="list"><span class="dot"></span>Liste</button>
+    <button data-view="new"><span class="dot"></span>Nouvelle activité</button>
+    <button data-view="profile"><span class="dot"></span>Profil</button>
+  </div>
+
+  <div class="view active" id="view-list">
+    <div class="card" data-activity="lisbonne">
+      <div class="card-top">
+        <div>
+          <div class="card-title">Weekend à Lisbonne</div>
+          <div class="card-meta">6 participants invités</div>
+        </div>
+        <span class="stamp voting">Vote en cours</span>
+      </div>
+    </div>
+    <div class="card" data-activity="jeux">
+      <div class="card-top">
+        <div>
+          <div class="card-title">Soirée jeux chez Sam</div>
+          <div class="card-meta">8 participants invités · samedi 14 sept</div>
+        </div>
+        <span class="stamp confirmed">Date fixée</span>
+      </div>
+    </div>
+    <div class="card" data-activity="rando">
+      <div class="card-top">
+        <div>
+          <div class="card-title">Randonnée Sainte-Victoire</div>
+          <div class="card-meta">4 participants invités</div>
+        </div>
+        <span class="stamp done">Passée</span>
+      </div>
+    </div>
+    <div class="empty-hint">Clique sur une activité pour voir le détail</div>
+  </div>
+
+  <div class="view" id="view-detail">
+    <button class="back-btn" id="back-to-list">← Retour à la liste</button>
+    <div class="detail-title" id="d-title">Weekend à Lisbonne</div>
+    <div class="detail-desc" id="d-desc">Trois jours à Lisbonne mi-octobre, vol + appartement partagé. Je réserve les vols dès qu'on a une date.</div>
+    <span class="stamp voting" id="d-status">Vote en cours</span>
+
+    <div class="perforation"></div>
+    <div class="section-label">Dates proposées</div>
+
+    <div class="date-option">
+      <div>
+        <div class="date-option-name">Ven 16 au dim 18 octobre</div>
+        <div class="date-option-voters">Marie, Léo, Nina, Paul ont voté</div>
+      </div>
+      <button class="vote-btn voted" data-vote="1">4 votes</button>
+    </div>
+    <div class="date-option">
+      <div>
+        <div class="date-option-name">Ven 23 au dim 25 octobre</div>
+        <div class="date-option-voters">Sam, Nina ont voté</div>
+      </div>
+      <button class="vote-btn" data-vote="2">2 votes</button>
+    </div>
+    <div class="confirm-line"><button>Confirmer cette date</button></div>
+
+    <div class="perforation"></div>
+    <div class="section-label">Budget par personne</div>
+    <div class="budget-row">
+      <div>
+        <div class="date-option-name">Vol</div>
+        <div class="budget-sub">Avancé par toi · 3 sur 6 ont remboursé</div>
+      </div>
+      <div class="budget-amount">95 €</div>
+    </div>
+    <div class="budget-row">
+      <div>
+        <div class="date-option-name">Appartement</div>
+        <div class="budget-sub">Paiement sur place</div>
+      </div>
+      <div class="budget-amount">40 €</div>
+    </div>
+
+    <div class="perforation"></div>
+    <div class="section-label">Participants</div>
+    <div class="participants">
+      <span class="chip">Marie</span>
+      <span class="chip">Léo</span>
+      <span class="chip">Nina</span>
+      <span class="chip">Paul</span>
+      <span class="chip">Sam</span>
+      <span class="chip">Théo</span>
+    </div>
+  </div>
+
+  <div class="view" id="view-new">
+    <div class="section-label">Créer une activité</div>
+    <div class="profile-card">
+      <label>Titre</label>
+      <input type="text" placeholder="Weekend à Lisbonne">
+      <label>Description</label>
+      <textarea placeholder="Explique l'idée, ce qui est prévu..."></textarea>
+      <label>Dates proposées</label>
+      <div class="date-row"><input type="text" placeholder="Ven 16 au dim 18 octobre"><button>✕</button></div>
+      <div class="date-row"><input type="text" placeholder="Ven 23 au dim 25 octobre"><button>✕</button></div>
+      <button class="add-date">+ Ajouter une date</button>
+      <label>Budget (facultatif)</label>
+      <div class="date-row">
+        <input type="text" placeholder="Vol" style="flex:2">
+        <input type="number" placeholder="95 €" style="flex:1">
+      </div>
+      <select style="margin-top:8px">
+        <option>J'avance, ils remboursent</option>
+        <option>Chacun paie sur place</option>
+      </select>
+      <button class="add-date">+ Ajouter une ligne de budget</button>
+      <label>Participants</label>
+      <div class="participants" style="margin-bottom:6px">
+        <span class="chip">Marie ✕</span>
+        <span class="chip">Léo ✕</span>
+        <span class="chip">Nina ✕</span>
+      </div>
+      <button class="add-date">+ Ajouter un participant</button>
+      <button class="primary-btn">Créer l'activité</button>
+    </div>
+  </div>
+
+  <div class="view" id="view-profile">
+    <div class="section-label">Ton profil</div>
+    <div class="profile-card">
+      <label>Nom complet</label>
+      <input type="text" value="Camille Bernard">
+      <label>Pseudo</label>
+      <input type="text" value="cam.b">
+      <label>Email</label>
+      <input type="text" value="camille@email.com">
+      <button class="primary-btn">Enregistrer</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const navButtons = document.querySelectorAll('.nav button');
+  const views = { list: document.getElementById('view-list'), new: document.getElementById('view-new'), profile: document.getElementById('view-profile'), detail: document.getElementById('view-detail') };
+
+  function showView(name){
+    Object.values(views).forEach(v => v.classList.remove('active'));
+    views[name].classList.add('active');
+    navButtons.forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  }
+
+  navButtons.forEach(btn => {
+    btn.addEventListener('click', () => showView(btn.dataset.view));
+  });
+
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => {
+      navButtons.forEach(b => b.classList.remove('active'));
+      showView('detail');
+    });
+  });
+
+  document.getElementById('back-to-list').addEventListener('click', () => showView('list'));
+
+  document.querySelectorAll('.vote-btn').forEach(btn => {
+    btn.addEventListener('click', () => btn.classList.toggle('voted'));
+  });
+</script>
+</body>
+</html>
