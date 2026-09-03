@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 import type { Database } from "@/lib/database.types";
+import { supabaseEnv } from "@/lib/supabase/env";
 
 /**
  * Chemins accessibles sans session. `/offline` en fait partie : le service
@@ -14,11 +15,12 @@ const PUBLIC_PATHS = ["/login", "/offline"];
  * Le `supabaseResponse` doit être renvoyé tel quel : il porte les cookies mis à jour.
  */
 export async function updateSession(request: NextRequest) {
+  const { url, key } = supabaseEnv();
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    key,
     {
       cookies: {
         getAll() {

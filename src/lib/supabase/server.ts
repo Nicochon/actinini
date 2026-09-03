@@ -2,17 +2,19 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
 import type { Database } from "@/lib/database.types";
+import { supabaseEnv } from "@/lib/supabase/env";
 
 /**
  * Client Supabase côté serveur (composants serveur et server actions).
  * À recréer à chaque requête : il porte les cookies de session.
  */
 export async function createClient() {
+  const { url, key } = supabaseEnv();
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    key,
     {
       cookies: {
         getAll() {

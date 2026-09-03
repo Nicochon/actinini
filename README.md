@@ -19,8 +19,15 @@ tables, index, fonctions, triggers et policies RLS.
 cp .env.local.example .env.local
 ```
 
-Renseigner l'URL et la clé anon du projet
-(Dashboard → Project Settings → API).
+Renseigner l'URL et la clé publique : bouton **Connect** en haut du dashboard
+Supabase → onglet **Framework** → **Next.js**, qui affiche les deux lignes.
+
+Ne pas suivre les autres étapes de cette page : les paquets sont déjà
+installés et les clients Supabase existent sous `src/lib/supabase/`.
+
+Le code accepte `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` comme
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase a renommé la clé, les deux
+fonctionnent.
 
 ### 3. Créer les comptes
 
