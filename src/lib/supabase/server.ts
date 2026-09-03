@@ -9,8 +9,12 @@ import { supabaseEnv } from "@/lib/supabase/env";
  * À recréer à chaque requête : il porte les cookies de session.
  */
 export async function createClient() {
-  const { url, key } = supabaseEnv();
+  // `cookies()` d'abord, et l'ordre n'est pas cosmétique : il signale à Next que
+  // la route est dynamique. Valider l'environnement avant lui ferait échouer la
+  // tentative de prérendu du build — et donc le build entier — au lieu de
+  // laisser la page basculer en rendu à la demande.
   const cookieStore = await cookies();
+  const { url, key } = supabaseEnv();
 
   return createServerClient<Database>(
     url,
