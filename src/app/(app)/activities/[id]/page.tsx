@@ -101,9 +101,34 @@ export default async function ActivityDetailPage({
   const nameOf = new Map(participants.map((p) => [p.id, displayName(p)]));
   const isParticipant = nameOf.has(profile.id);
 
-  // Un seul créneau proposé : la date n'est pas en débat, on demande seulement
-  // qui vient. Toute la section change de vocabulaire, pas de mécanique.
-  const isSingleDate = dateOptions.length === 1;
+  /**
+   * Le créneau sur lequel se joue la présence : la date retenue, ou l'unique
+   * créneau quand il n'y en a qu'un.
+   *
+   * Tant qu'il vaut null — plusieurs dates, aucune tranchée — la question
+   * posée reste « quand es-tu dispo ? » et personne n'a encore dit s'il
+   * venait : inutile alors de distinguer invités et participants.
+   */
+  const attendanceDateId =
+    activity.confirmed_date_option_id ??
+    (dateOptions.length === 1 ? dateOptions[0].id : null);
+
+  // Une fois la date tranchée, un vote sur ce créneau vaut « je viens ». Rien
+  // n'est figé pour autant : qui avait voté ailleurs peut encore se joindre,
+  // qui avait voté là peut se retirer — c'est le même bouton.
+  const attendeeIds = new Set(
+    votes
+      .filter((v) => v.date_option_id === attendanceDateId)
+      .map((v) => v.profile_id),
+  );
+  const attendees = participants.filter((p) => attendeeIds.has(p.id));
+  const awaiting = participants.filter((p) => !attendeeIds.has(p.id));
+
+  const datesLabel = !attendanceDateId
+    ? "Dates proposées"
+    : dateOptions.length === 1
+      ? "Date"
+      : "Date retenue";
 
   // Comptes disponibles pour une invitation (admin seulement).
   const candidates = isOwner
@@ -155,7 +180,7 @@ export default async function ActivityDetailPage({
 
         {/* ---------- Dates proposées ---------- */}
         <Perforation bleed />
-        <SectionLabel>{isSingleDate ? "Date" : "Dates proposées"}</SectionLabel>
+        <SectionLabel>{datesLabel}</SectionLabel>
 
         {dateOptions.length === 0 ? (
           <p className="text-ink-soft text-[13px]">
@@ -170,7 +195,11 @@ export default async function ActivityDetailPage({
               .map((v) => nameOf.get(v.profile_id))
               .filter((name): name is string => Boolean(name));
             const isConfirmed = activity.confirmed_date_option_id === option.id;
-            const wording = isSingleDate
+            // Les créneaux écartés restent lisibles, mais la phase de vote est
+            // close : plus de bouton, juste le décompte, en retrait.
+            const isAttendanceDate = option.id === attendanceDateId;
+            const settled = Boolean(attendanceDateId) && !isAttendanceDate;
+            const wording = isAttendanceDate
               ? {
                   empty: "Personne n'a encore répondu",
                   verb: voterNames.length > 1 ? "participent" : "participe",
@@ -183,7 +212,9 @@ export default async function ActivityDetailPage({
             return (
               <div
                 key={option.id}
-                className="border-line-soft border-b py-3 last:border-b-0"
+                className={`border-line-soft border-b py-3 last:border-b-0 ${
+                  settled ? "opacity-55" : ""
+                }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -201,15 +232,23 @@ export default async function ActivityDetailPage({
                         : wording.empty}
                     </div>
                   </div>
-                  <VoteButton
-                    activityId={activity.id}
-                    dateOptionId={option.id}
-                    voted={optionVotes.some((v) => v.profile_id === profile.id)}
-                    count={optionVotes.length}
-                    attendance={isSingleDate}
-                    // Voter suppose d'être invité : la RLS refuserait le vote sinon.
-                    disabled={!isParticipant}
-                  />
+                  {settled ? (
+                    <span className="text-ink-soft shrink-0 text-[13px]">
+                      {plural(optionVotes.length, "vote")}
+                    </span>
+                  ) : (
+                    <VoteButton
+                      activityId={activity.id}
+                      dateOptionId={option.id}
+                      voted={optionVotes.some(
+                        (v) => v.profile_id === profile.id,
+                      )}
+                      count={optionVotes.length}
+                      attendance={isAttendanceDate}
+                      // Voter suppose d'être invité : la RLS refuserait le vote sinon.
+                      disabled={!isParticipant}
+                    />
+                  )}
                 </div>
 
                 {isOwner && !isConfirmed && (
@@ -293,18 +332,47 @@ export default async function ActivityDetailPage({
           </>
         )}
 
-        {/* ---------- Participants ---------- */}
+        {/* ---------- Invités et participants ---------- */}
         <Perforation bleed />
-        <SectionLabel>
-          {plural(participants.length, "participant")}
-        </SectionLabel>
 
-        <ParticipantsEditor
-          activityId={activity.id}
-          participants={participants}
-          candidates={candidates}
-          isAdmin={isOwner}
-        />
+        {attendanceDateId ? (
+          <>
+            <SectionLabel>
+              Participants · {attendees.length} sur {participants.length}
+            </SectionLabel>
+            <ParticipantsEditor
+              activityId={activity.id}
+              participants={attendees}
+              // Pas de bouton d'invitation ici : on n'invite pas quelqu'un
+              // directement dans la liste de ceux qui ont déjà confirmé.
+              candidates={[]}
+              isAdmin={isOwner}
+              emptyLabel="Personne n'a encore confirmé sa présence."
+            />
+
+            <div className="mt-6">
+              <SectionLabel>En attente de réponse · {awaiting.length}</SectionLabel>
+              <ParticipantsEditor
+                activityId={activity.id}
+                participants={awaiting}
+                candidates={candidates}
+                isAdmin={isOwner}
+                emptyLabel="Tout le monde a répondu."
+                muted
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <SectionLabel>{plural(participants.length, "invité")}</SectionLabel>
+            <ParticipantsEditor
+              activityId={activity.id}
+              participants={participants}
+              candidates={candidates}
+              isAdmin={isOwner}
+            />
+          </>
+        )}
       </Card>
     </>
   );

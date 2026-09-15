@@ -153,11 +153,15 @@ export function ParticipantsEditor({
   participants,
   candidates,
   isAdmin,
+  emptyLabel = "Personne n'est encore invité.",
+  muted = false,
 }: {
   activityId: string;
   participants: Pick<Profile, "id" | "full_name" | "pseudo">[];
   candidates: Pick<Profile, "id" | "full_name" | "pseudo">[];
   isAdmin: boolean;
+  emptyLabel?: string;
+  muted?: boolean;
 }) {
   const { pending, error, run } = useAction();
   const [adding, setAdding] = useState(false);
@@ -166,7 +170,7 @@ export function ParticipantsEditor({
     <div>
       <div className="flex flex-wrap gap-2">
         {participants.map((person) => (
-          <Chip key={person.id}>
+          <Chip key={person.id} className={muted ? "border-dashed" : ""}>
             {displayName(person)}
             {isAdmin && (
               <button
@@ -182,7 +186,7 @@ export function ParticipantsEditor({
           </Chip>
         ))}
         {participants.length === 0 && (
-          <p className="text-ink-soft text-[13px]">Personne n&apos;est encore invité.</p>
+          <p className="text-ink-soft text-[13px]">{emptyLabel}</p>
         )}
       </div>
 
