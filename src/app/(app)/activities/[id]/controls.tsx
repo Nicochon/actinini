@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 
 import { AddButton, Chip } from "@/components/ui";
 import type { Profile } from "@/lib/database.types";
-import { plural } from "@/lib/format";
+import { displayName, plural } from "@/lib/format";
 
 import {
   addParticipant,
@@ -40,20 +40,30 @@ function ErrorLine({ children }: { children?: string }) {
   );
 }
 
+/**
+ * Avec plusieurs créneaux, le bouton compte les votes. Avec un seul, il n'y a
+ * rien à arbitrer : la question devient « tu viens ? ». La donnée reste un
+ * vote — seule la formulation change.
+ */
 export function VoteButton({
   activityId,
   dateOptionId,
   voted,
   count,
   disabled,
+  attendance = false,
 }: {
   activityId: string;
   dateOptionId: string;
   voted: boolean;
   count: number;
   disabled: boolean;
+  attendance?: boolean;
 }) {
   const { pending, error, run } = useAction();
+  const label = attendance
+    ? `${voted ? "✓ " : ""}Je participe`
+    : plural(count, "vote");
 
   return (
     <div className="shrink-0 text-right">
@@ -62,13 +72,15 @@ export function VoteButton({
         disabled={disabled || pending}
         aria-pressed={voted}
         onClick={() => run(() => toggleVote(activityId, dateOptionId))}
-        className={`min-w-[66px] rounded-[20px] border px-3.5 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-60 ${
+        className={`rounded-[20px] border px-3.5 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-60 ${
+          attendance ? "min-w-[116px]" : "min-w-[66px]"
+        } ${
           voted
             ? "bg-sage border-sage-deep text-white"
             : "bg-paper border-line text-ink-soft enabled:hover:border-ink-soft"
         }`}
       >
-        {plural(count, "vote")}
+        {label}
       </button>
       <ErrorLine>{error}</ErrorLine>
     </div>
@@ -143,7 +155,7 @@ export function ParticipantsEditor({
   isAdmin,
 }: {
   activityId: string;
-  participants: Pick<Profile, "id" | "full_name">[];
+  participants: Pick<Profile, "id" | "full_name" | "pseudo">[];
   candidates: Pick<Profile, "id" | "full_name" | "pseudo">[];
   isAdmin: boolean;
 }) {
@@ -155,12 +167,12 @@ export function ParticipantsEditor({
       <div className="flex flex-wrap gap-2">
         {participants.map((person) => (
           <Chip key={person.id}>
-            {person.full_name}
+            {displayName(person)}
             {isAdmin && (
               <button
                 type="button"
                 disabled={pending}
-                aria-label={`Retirer ${person.full_name}`}
+                aria-label={`Retirer ${displayName(person)}`}
                 onClick={() => run(() => removeParticipant(activityId, person.id))}
                 className="text-brick hover:text-brick-deep -mr-1 px-1 leading-none disabled:opacity-60"
               >
@@ -186,7 +198,7 @@ export function ParticipantsEditor({
                   onClick={() => run(() => addParticipant(activityId, person.id))}
                   className="border-line bg-paper hover:border-ink-soft rounded-[20px] border border-dashed px-3 py-1.5 text-[13px] transition-colors disabled:opacity-60"
                 >
-                  + {person.full_name}
+                  + {displayName(person)}
                 </button>
               ))}
             </div>

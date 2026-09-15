@@ -12,6 +12,7 @@ import {
 } from "@/components/activity-fields";
 import { Card, Field, FormError, PrimaryButton, SectionLabel } from "@/components/ui";
 import type { Profile } from "@/lib/database.types";
+import { displayName } from "@/lib/format";
 
 import { createActivity } from "./actions";
 
@@ -98,7 +99,7 @@ export function ActivityForm({ people }: { people: Pick<Profile, "id" | "full_na
                       : "border-line bg-paper text-ink-soft border-dashed"
                   }`}
                 >
-                  {person.full_name}
+                  {displayName(person)}
                 </button>
               );
             })}

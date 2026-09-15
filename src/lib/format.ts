@@ -72,6 +72,29 @@ export function joinNames(names: string[]) {
   return `${names.slice(0, -1).join(", ")} et ${names[names.length - 1]}`;
 }
 
+/** Un pseudo laissé par défaut par le trigger : l'UUID du compte. */
+const RAW_UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Nom affichable d'un profil.
+ *
+ * Un compte créé sans `full_name` ni `pseudo` dans les métadonnées arrive ici
+ * avec un nom vide et un UUID en guise de pseudo (voir `handle_new_user` dans
+ * schema.sql). Rendu tel quel, il donne une pastille vide : impossible de
+ * savoir qui inviter. On préfère le signaler explicitement — un compte à
+ * compléter se voit, un compte invisible se subit.
+ */
+export function displayName(person: { full_name: string; pseudo?: string }) {
+  const name = person.full_name?.trim();
+  if (name) return name;
+
+  const pseudo = person.pseudo?.trim();
+  if (pseudo && !RAW_UUID.test(pseudo)) return `@${pseudo}`;
+
+  return "Compte sans nom";
+}
+
 export const STATUS_LABELS: Record<ActivityStatus, string> = {
   voting: "Vote en cours",
   confirmed: "Date fixée",

@@ -9,7 +9,13 @@ import type {
   Profile,
   Vote,
 } from "@/lib/database.types";
-import { formatDateRange, formatEuros, joinNames, plural } from "@/lib/format";
+import {
+  displayName,
+  formatDateRange,
+  formatEuros,
+  joinNames,
+  plural,
+} from "@/lib/format";
 import { requireProfile } from "@/lib/session";
 
 import {
@@ -92,8 +98,12 @@ export default async function ActivityDetailPage({
   >[] = budgetRes.data ?? [];
   const payments = paymentsRes.data ?? [];
 
-  const nameOf = new Map(participants.map((p) => [p.id, p.full_name]));
+  const nameOf = new Map(participants.map((p) => [p.id, displayName(p)]));
   const isParticipant = nameOf.has(profile.id);
+
+  // Un seul créneau proposé : la date n'est pas en débat, on demande seulement
+  // qui vient. Toute la section change de vocabulaire, pas de mécanique.
+  const isSingleDate = dateOptions.length === 1;
 
   // Comptes disponibles pour une invitation (admin seulement).
   const candidates = isOwner
@@ -145,7 +155,7 @@ export default async function ActivityDetailPage({
 
         {/* ---------- Dates proposées ---------- */}
         <Perforation bleed />
-        <SectionLabel>Dates proposées</SectionLabel>
+        <SectionLabel>{isSingleDate ? "Date" : "Dates proposées"}</SectionLabel>
 
         {dateOptions.length === 0 ? (
           <p className="text-ink-soft text-[13px]">
@@ -160,6 +170,15 @@ export default async function ActivityDetailPage({
               .map((v) => nameOf.get(v.profile_id))
               .filter((name): name is string => Boolean(name));
             const isConfirmed = activity.confirmed_date_option_id === option.id;
+            const wording = isSingleDate
+              ? {
+                  empty: "Personne n'a encore répondu",
+                  verb: voterNames.length > 1 ? "participent" : "participe",
+                }
+              : {
+                  empty: "Personne n'a encore voté",
+                  verb: voterNames.length > 1 ? "ont voté" : "a voté",
+                };
 
             return (
               <div
@@ -178,8 +197,8 @@ export default async function ActivityDetailPage({
                     </div>
                     <div className="text-ink-soft mt-0.5 text-xs">
                       {voterNames.length > 0
-                        ? `${joinNames(voterNames)} ${voterNames.length > 1 ? "ont" : "a"} voté`
-                        : "Personne n'a encore voté"}
+                        ? `${joinNames(voterNames)} ${wording.verb}`
+                        : wording.empty}
                     </div>
                   </div>
                   <VoteButton
@@ -187,6 +206,7 @@ export default async function ActivityDetailPage({
                     dateOptionId={option.id}
                     voted={optionVotes.some((v) => v.profile_id === profile.id)}
                     count={optionVotes.length}
+                    attendance={isSingleDate}
                     // Voter suppose d'être invité : la RLS refuserait le vote sinon.
                     disabled={!isParticipant}
                   />
@@ -206,13 +226,14 @@ export default async function ActivityDetailPage({
         )}
 
         {/* ---------- Budget ---------- */}
-        <Perforation bleed />
-        <SectionLabel>Budget par personne</SectionLabel>
-
-        {budgetItems.length === 0 ? (
-          <p className="text-ink-soft text-[13px]">Pas de budget renseigné.</p>
-        ) : (
+        {/* Aucune ligne de budget : la section entière disparaît. « Pas de
+            budget renseigné » suivi d'un total à zéro n'apprend rien, et une
+            sortie gratuite n'a pas à parler d'argent. */}
+        {budgetItems.length > 0 && (
           <>
+            <Perforation bleed />
+            <SectionLabel>Budget par personne</SectionLabel>
+
             {budgetItems.map((item) => {
               const itemPayments = payments.filter(
                 (p) => p.budget_item_id === item.id,

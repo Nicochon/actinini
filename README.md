@@ -36,6 +36,12 @@ le dashboard Supabase (Authentication → Users → Add user). Renseigner
 `full_name` et `pseudo` dans les **user metadata** — un trigger crée la ligne
 `profiles` correspondante.
 
+Si on les oublie, le trigger retombe sur la partie gauche de l'email
+(`marie@…` → `marie`), suffixée d'un chiffre si ce pseudo est déjà pris. Le
+compte reste donc identifiable dans la liste d'invitation ; le nom affiché est
+simplement approximatif, et chacun peut corriger le sien depuis l'onglet
+**Profil**.
+
 Puis désigner l'administrateur du groupe, en SQL :
 
 ```sql

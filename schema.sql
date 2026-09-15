@@ -234,7 +234,8 @@ $$;
 -- TRIGGER 1 — création automatique du profil à l'inscription
 -- Quand un compte est créé dans auth.users (par l'admin), une
 -- ligne profiles correspondante est créée. full_name et pseudo
--- sont lus depuis raw_user_meta_data.
+-- sont lus depuis raw_user_meta_data ; à défaut, on retombe sur
+-- la partie gauche de l'email plutôt que sur un nom vide.
 -- is_admin n'est jamais posé ici : il se met à la main sur le
 -- seul compte administrateur.
 -- ------------------------------------------------------------
@@ -242,12 +243,32 @@ create function handle_new_user()
 returns trigger
 language plpgsql security definer set search_path = public, pg_temp
 as $$
+declare
+  base   text;
+  handle text;
+  n      int := 0;
 begin
+  -- Repli quand les métadonnées sont absentes : la partie gauche de l'email.
+  -- Un compte créé sans full_name ni pseudo reste ainsi identifiable dans la
+  -- liste d'invitation, au lieu d'y apparaître sous une pastille vide.
+  base := nullif(split_part(coalesce(new.email, ''), '@', 1), '');
+
+  handle := nullif(new.raw_user_meta_data ->> 'pseudo', '');
+  if handle is null then
+    -- `pseudo` est unique : on suffixe tant qu'il est pris plutôt que de
+    -- faire échouer la création du compte sur un homonyme d'email.
+    handle := coalesce(base, new.id::text);
+    while exists (select 1 from profiles p where p.pseudo = handle) loop
+      n := n + 1;
+      handle := coalesce(base, new.id::text) || n::text;
+    end loop;
+  end if;
+
   insert into profiles (id, full_name, pseudo)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data ->> 'full_name', ''),
-    coalesce(new.raw_user_meta_data ->> 'pseudo', new.id::text)
+    coalesce(nullif(new.raw_user_meta_data ->> 'full_name', ''), base, ''),
+    handle
   );
   return new;
 end;
