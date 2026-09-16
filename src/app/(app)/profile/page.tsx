@@ -3,6 +3,7 @@ import { requireProfile } from "@/lib/session";
 
 import { signOut } from "./actions";
 import { CredentialsForm, IdentityForm } from "./profile-forms";
+import { PushNotifications } from "./push-notifications";
 
 export const metadata = { title: "Profil" };
 
@@ -13,6 +14,10 @@ export default async function ProfilePage() {
     <>
       <SectionLabel>Ton profil</SectionLabel>
       <IdentityForm profile={profile} />
+
+      <div className="perforation" />
+      <SectionLabel>Notifications</SectionLabel>
+      <PushNotifications />
 
       <div className="perforation" />
       <SectionLabel>Identifiants de connexion</SectionLabel>

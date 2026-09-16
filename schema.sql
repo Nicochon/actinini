@@ -143,6 +143,27 @@ create table payments (
 );
 
 
+-- ----------------------------------------------------------
+-- 1.8 PUSH_SUBSCRIPTIONS
+-- Une ligne = un appareil abonné aux notifications. Un même profil
+-- en a plusieurs (téléphone, tablette, navigateur de bureau) :
+-- c'est l'endpoint, l'URL privée fournie par Apple ou Google, qui
+-- identifie l'appareil, pas le profil.
+--
+-- Jamais écrite directement par un utilisateur : les lignes passent
+-- par save_push_subscription() et forget_push_subscription()
+-- (security definer), comme payments passe par ses triggers.
+-- ----------------------------------------------------------
+create table push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references profiles(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz not null default now()
+);
+
+
 -- ============================================================
 -- 2. INDEX
 -- Postgres n'indexe pas automatiquement les clés étrangères.
@@ -157,6 +178,7 @@ create index votes_profile_idx                on votes (profile_id);
 create index budget_items_activity_idx        on budget_items (activity_id);
 create index payments_budget_item_idx         on payments (budget_item_id);
 create index payments_profile_idx             on payments (profile_id);
+create index push_subscriptions_profile_idx    on push_subscriptions (profile_id);
 
 
 -- ============================================================
@@ -223,6 +245,73 @@ returns boolean
 language sql stable security definer set search_path = public, pg_temp
 as $$
   select is_activity_owner((select bi.activity_id from budget_items bi where bi.id = bi_id));
+$$;
+
+
+-- ------------------------------------------------------------
+-- Notifications push — écriture et lecture des abonnements.
+--
+-- Ces trois-là ne servent pas la RLS, elles la contournent
+-- délibérément sur un périmètre étroit. Le raisonnement complet est
+-- dans migrations/2026-09-17-notifications-push.sql.
+-- ------------------------------------------------------------
+
+-- Enregistre l'appareil courant. Le delete préalable traite le
+-- téléphone qui change de mains : l'endpoint est déjà en base au nom
+-- de l'ancien compte, et une policy UPDATE refuserait de le
+-- réattribuer — le nouveau propriétaire ne recevrait jamais rien.
+create function save_push_subscription(p_endpoint text, p_p256dh text, p_auth text)
+returns void
+language plpgsql security definer set search_path = public, pg_temp
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Connexion requise';
+  end if;
+
+  delete from push_subscriptions where endpoint = p_endpoint;
+
+  insert into push_subscriptions (profile_id, endpoint, p256dh, auth)
+  values (auth.uid(), p_endpoint, p_p256dh, p_auth);
+end;
+$$;
+
+-- Oublie un appareil. Deux appelants : l'utilisateur qui coupe ses
+-- notifications, et le serveur quand Apple ou Google répond 404/410
+-- (app désinstallée). Le second ne connaît pas le profil visé, d'où
+-- le ciblage par endpoint seul.
+create function forget_push_subscription(p_endpoint text)
+returns void
+language plpgsql security definer set search_path = public, pg_temp
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Connexion requise';
+  end if;
+
+  delete from push_subscriptions where endpoint = p_endpoint;
+end;
+$$;
+
+-- Les appareils des invités d'une activité, rendus à son créateur
+-- seul. C'est ce qui évite de donner la service_role key à l'app.
+--
+-- En `language sql` et non en plpgsql à dessein : une colonne de
+-- sortie nommée `auth` deviendrait en plpgsql une variable qui
+-- masquerait le schéma `auth`, et `auth.uid()` cesserait de
+-- fonctionner dans le corps de la fonction.
+create function push_targets_for_activity(p_activity_id uuid)
+returns table (endpoint text, p256dh text, auth text)
+language sql stable security definer set search_path = public, pg_temp
+as $$
+  select ps.endpoint, ps.p256dh, ps.auth
+  from push_subscriptions ps
+  join activity_participants ap on ap.profile_id = ps.profile_id
+  where ap.activity_id = p_activity_id
+    and ps.profile_id <> auth.uid()
+    -- Non-propriétaire : zéro ligne, pas d'erreur. L'envoi de
+    -- notifications ne doit jamais faire échouer l'action en cours.
+    and is_activity_owner(p_activity_id);
 $$;
 
 
@@ -474,6 +563,7 @@ alter table date_options enable row level security;
 alter table votes enable row level security;
 alter table budget_items enable row level security;
 alter table payments enable row level security;
+alter table push_subscriptions enable row level security;
 
 -- --- PROFILES ---
 -- Tout le monde dans le groupe voit les profils (les noms sont
@@ -615,3 +705,16 @@ create policy "payments_update_owner"
 -- Pas de policy insert ni delete : les lignes payments sont gérées
 -- uniquement par les triggers (security definer), jamais
 -- directement par un utilisateur.
+
+
+-- --- PUSH_SUBSCRIPTIONS ---
+-- Chacun ne voit que ses propres appareils : de quoi s'envoyer une
+-- notification de test. L'envoi aux autres passe par
+-- push_targets_for_activity().
+--
+-- Pas de policy insert, update ni delete : l'écriture se fait
+-- uniquement par save_push_subscription() et
+-- forget_push_subscription().
+create policy "push_subscriptions_select_own"
+  on push_subscriptions for select to authenticated
+  using (profile_id = auth.uid());

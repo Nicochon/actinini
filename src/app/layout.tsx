@@ -21,7 +21,9 @@ export const metadata: Metadata = {
   title: "Nos activités",
   description: "Organiser les sorties du groupe : dates, budget, participants.",
   applicationName: "Activités",
-  // iOS ignore le manifeste : le mode plein écran passe par ces méta-données.
+  // Le nom sous l'icône et la barre d'état de l'app installée sur iPhone.
+  // (Le plein écran, lui, vient de `display: standalone` du manifeste, que
+  // Safari lit depuis iOS 16.4.)
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Activités" },
 };
 

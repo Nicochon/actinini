@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { parseBudget, parseDates } from "@/lib/activity-input";
 import type { PaymentMode } from "@/lib/database.types";
+import { displayName } from "@/lib/format";
+import { notifyActivityParticipants } from "@/lib/push";
 import { requireProfile } from "@/lib/session";
 
 export type NewActivityInput = {
@@ -83,6 +86,18 @@ export async function createActivity(input: NewActivityInput): Promise<CreateRes
     );
     if (error) return rollback("Le budget n'a pas pu être enregistré.");
   }
+
+  // Prévenir les invités, mais pas au prix d'un écran d'attente : `after`
+  // laisse la réponse partir et n'envoie les notifications qu'ensuite. Un
+  // téléphone d'invité injoignable ne doit pas faire patienter l'organisateur
+  // devant son formulaire.
+  after(async () => {
+    await notifyActivityParticipants(supabase, activity.id, {
+      title: "Nouvelle activité",
+      body: `${displayName(profile)} propose : ${title}`,
+      url: `/activities/${activity.id}`,
+    });
+  });
 
   revalidatePath("/");
   return { activityId: activity.id };

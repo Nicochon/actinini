@@ -69,6 +69,23 @@ export type Payment = {
   created_at: string;
 };
 
+/**
+ * Un appareil abonné aux notifications (table `push_subscriptions`).
+ *
+ * Nommé `PushDevice` et non `PushSubscription` : ce dernier est déjà le type
+ * DOM rendu par `pushManager.subscribe()`, et les deux se croisent dans le
+ * composant d'abonnement.
+ */
+export type PushDevice = {
+  id: string;
+  profile_id: string;
+  /** URL privée fournie par Apple ou Google — identifie l'appareil. */
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  created_at: string;
+};
+
 type Relationship = {
   foreignKeyName: string;
   columns: string[];
@@ -217,9 +234,34 @@ export type Database = {
           },
         ];
       };
+      /** Écrite uniquement par save_push_subscription() / forget_push_subscription(). */
+      push_subscriptions: Table<PushDevice, never, never> & {
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      save_push_subscription: {
+        Args: { p_endpoint: string; p_p256dh: string; p_auth: string };
+        Returns: undefined;
+      };
+      forget_push_subscription: {
+        Args: { p_endpoint: string };
+        Returns: undefined;
+      };
+      push_targets_for_activity: {
+        Args: { p_activity_id: string };
+        Returns: { endpoint: string; p256dh: string; auth: string }[];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
