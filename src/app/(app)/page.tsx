@@ -119,11 +119,20 @@ export default async function ActivitiesPage() {
   /**
    * Ce que le calendrier affiche : une barre par créneau encore en lice. Une
    * fois la date tranchée, les créneaux écartés disparaissent — les garder
-   * donnerait trois week-ends à Lisbonne pour un seul voyage. Une activité
-   * annulée ne figure pas au calendrier.
+   * donnerait trois week-ends à Lisbonne pour un seul voyage.
+   *
+   * N'y figurent ni les activités annulées, ni celles qu'on a déclinées : le
+   * calendrier est le sien, pas celui du groupe. L'activité reste visible dans
+   * la liste en dessous, et la page de détail rappelle la réponse donnée.
    */
   const events: CalendarEvent[] = activities
     .filter((activity) => activity.status !== "cancelled")
+    .filter(
+      (activity) =>
+        !activity.activity_participants.some(
+          (person) => person.profile_id === profile.id && person.declined,
+        ),
+    )
     .flatMap((activity) => {
       const options = activity.confirmed_date_option_id
         ? activity.date_options.filter((o) => o.id === activity.confirmed_date_option_id)
