@@ -29,3 +29,16 @@ export async function requireProfile() {
 
   return { supabase, user, profile };
 }
+
+/**
+ * Idem, mais réservé à l'administrateur du groupe.
+ *
+ * La RLS refuserait de toute façon les écritures d'un non-admin ; ce garde
+ * évite d'afficher une page qui ne pourrait rien faire, et ferme la porte aux
+ * server actions, qui sont joignables par un POST direct sans passer par l'UI.
+ */
+export async function requireAdmin() {
+  const context = await requireProfile();
+  if (!context.profile.is_admin) redirect("/");
+  return context;
+}

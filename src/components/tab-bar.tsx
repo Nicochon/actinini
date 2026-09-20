@@ -5,14 +5,18 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/", label: "Liste" },
-  { href: "/activities/new", label: "Nouvelle activité" },
+  // « Créer » et non « Nouvelle activité » : à quatre onglets, le libellé long
+  // passait sur deux lignes sur un écran de 375 px et désalignait la barre.
+  { href: "/activities/new", label: "Créer", adminOnly: true },
+  { href: "/accounts", label: "Comptes", adminOnly: true },
   { href: "/profile", label: "Profil" },
 ] as const;
 
 export function TabBar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
-  // Sans droits admin, l'onglet de création n'a pas lieu d'être.
-  const tabs = TABS.filter((tab) => isAdmin || tab.href !== "/activities/new");
+  // Créer une activité et gérer les comptes n'ont de sens que pour l'admin :
+  // la RLS refuserait l'un comme l'autre à quelqu'un d'autre.
+  const tabs = TABS.filter((tab) => isAdmin || !("adminOnly" in tab));
 
   return (
     <nav className="border-line bg-paper-raised fixed inset-x-0 bottom-0 z-10 flex gap-0.5 border-t px-[max(1rem,calc(50%-19rem))] pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
@@ -23,7 +27,7 @@ export function TabBar({ isAdmin }: { isAdmin: boolean }) {
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={`flex flex-1 flex-col items-center gap-1 rounded-lg px-1 pt-2 pb-1.5 text-[11px] font-medium transition-colors ${
+            className={`flex flex-1 flex-col items-center gap-1 rounded-lg px-1 pt-2 pb-1.5 text-center text-[11px] leading-[1.25] font-medium transition-colors ${
               active ? "text-ink" : "text-ink-soft"
             }`}
           >

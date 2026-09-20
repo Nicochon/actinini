@@ -579,6 +579,14 @@ create policy "profiles_update_own"
   using (id = auth.uid())
   with check (id = auth.uid());
 
+-- L'admin du groupe modifie aussi les profils des autres : c'est lui
+-- qui crée les comptes, donc lui qui rattrape un nom mal saisi. Les
+-- colonnes atteignables restent celles du GRANT ci-dessous.
+create policy "profiles_update_admin"
+  on profiles for update to authenticated
+  using (is_group_admin())
+  with check (is_group_admin());
+
 -- Colonnes non modifiables par l'utilisateur, quelle que soit la
 -- policy : une élévation en admin passe forcément par le dashboard
 -- Supabase ou la service_role key.

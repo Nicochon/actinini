@@ -29,12 +29,18 @@ Le code accepte `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` comme
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase a renommé la clé, les deux
 fonctionnent.
 
+Renseigner aussi `SUPABASE_SECRET_KEY` (même écran, section **API keys** ;
+« service_role » sur les projets plus anciens). Elle est nécessaire à la page
+**Comptes** pour créer un compte ou changer un mot de passe — voir plus bas.
+Elle ignore la RLS : jamais de préfixe `NEXT_PUBLIC_`, jamais dans le dépôt.
+
 ### 3. Créer les comptes
 
-Il n'y a pas d'inscription libre : les comptes sont créés par l'admin depuis
-le dashboard Supabase (Authentication → Users → Add user). Renseigner
-`full_name` et `pseudo` dans les **user metadata** — un trigger crée la ligne
-`profiles` correspondante.
+Il n'y a pas d'inscription libre : les comptes sont créés par l'admin. Le
+premier — le sien — se crée depuis le dashboard Supabase (Authentication →
+Users → Add user), en renseignant `full_name` et `pseudo` dans les **user
+metadata** ; un trigger crée la ligne `profiles` correspondante. Les suivants
+se créent depuis l'onglet **Comptes** de l'app, qui fait la même chose.
 
 Si on les oublie, le trigger retombe sur la partie gauche de l'email
 (`marie@…` → `marie`), suffixée d'un chiffre si ce pseudo est déjà pris. Le
@@ -102,18 +108,47 @@ src/
       page.tsx              liste des activités (à venir / passées)
       activities/new/       création (admin uniquement)
       activities/[id]/      détail : dates, budget, participants
+      accounts/             gestion des comptes (admin uniquement)
       profile/              nom, pseudo, identifiants
   components/               tab bar + primitives visuelles
   lib/
-    supabase/               clients navigateur, serveur et proxy
+    supabase/               clients navigateur, serveur, proxy et admin
     database.types.ts       reflet manuel de schema.sql
     format.ts               dates, montants, énumérations en français
-    session.ts              requireProfile() pour pages et actions
+    session.ts              requireProfile() / requireAdmin(), pages et actions
   proxy.ts                  rafraîchit la session, garde les routes
 ```
 
 Les mutations passent par des **server actions** ; l'autorisation est portée
 par la RLS, pas par le code applicatif. Une action non autorisée n'écrit rien.
+
+## Gestion des comptes (onglet Comptes)
+
+L'admin y voit tous les comptes du groupe et peut, pour chacun, corriger le nom
+et le pseudo, changer l'adresse email, remplacer le mot de passe ou supprimer le
+compte. Il peut aussi en créer un.
+
+Deux chemins d'autorisation cohabitent, et c'est la seule subtilité du dossier :
+
+| Ce qui est modifié | Où ça vit | Comment l'app y touche |
+|---|---|---|
+| nom, pseudo | `profiles` | client de session, policy `profiles_update_admin` |
+| email, mot de passe, création, suppression | `auth.users` | API d'administration + `SUPABASE_SECRET_KEY` |
+
+`src/lib/supabase/admin.ts` porte cette clé, qui ignore la RLS. **Il ne sert
+qu'aux appels `auth.admin.*`** : tout ce qui touche aux tables publiques
+continue de passer par la RLS, qui reste le garde-fou. Sans la clé, la page
+reste consultable et les noms restent modifiables — elle affiche alors ce qui
+lui manque, au lieu d'échouer.
+
+`is_admin` n'est modifiable ni depuis cette page ni depuis aucune autre : le
+privilège UPDATE est retiré sur la colonne. Désigner un administrateur passe
+toujours par le SQL de la mise en route.
+
+Aucun mail n'est envoyé : ni invitation, ni lien de réinitialisation. L'admin
+transmet lui-même les identifiants, et un mot de passe posé ici est actif
+immédiatement. C'est délibéré — le SMTP par défaut de Supabase est trop bridé
+pour qu'on puisse compter dessus.
 
 ## Points d'attention
 
