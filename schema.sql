@@ -386,6 +386,7 @@ begin
     select new.id, ap.profile_id
     from activity_participants ap
     where ap.activity_id = new.activity_id
+      and not ap.declined
     on conflict (budget_item_id, profile_id) do nothing;
   end if;
   return new;
@@ -411,6 +412,7 @@ begin
     select new.id, ap.profile_id
     from activity_participants ap
     where ap.activity_id = new.activity_id
+      and not ap.declined
     on conflict (budget_item_id, profile_id) do nothing;
   elsif new.payment_mode <> 'advance' and old.payment_mode = 'advance' then
     delete from payments where budget_item_id = new.id;
@@ -438,6 +440,12 @@ returns trigger
 language plpgsql security definer set search_path = public, pg_temp
 as $$
 begin
+  -- Réinviter quelqu'un qui avait décliné ne lui recrée pas de lignes :
+  -- sa réponse tient toujours.
+  if new.declined then
+    return new;
+  end if;
+
   insert into payments (budget_item_id, profile_id)
   select bi.id, new.profile_id
   from budget_items bi
@@ -474,6 +482,46 @@ $$;
 create trigger on_participant_removed
   after delete on activity_participants
   for each row execute function handle_participant_removed();
+
+-- ------------------------------------------------------------
+-- TRIGGER 4 bis — réponse à l'invitation
+-- Dire « je ne viens pas » retire ses lignes de remboursement,
+-- revenir sur son refus les recrée. Le critère est le refus
+-- explicite, pas la présence confirmée : un invité qui n'a pas
+-- répondu garde sa ligne, puisqu'on ignore s'il vient.
+-- ------------------------------------------------------------
+create function handle_participant_declined()
+returns trigger
+language plpgsql security definer set search_path = public, pg_temp
+as $$
+begin
+  if new.declined then
+    -- Une ligne déjà cochée n'est pas effacée : un remboursement constaté est
+    -- un fait, pas une prévision. À l'organisateur de décider s'il rend
+    -- l'argent.
+    delete from payments p
+    using budget_items bi
+    where p.budget_item_id = bi.id
+      and bi.activity_id = new.activity_id
+      and p.profile_id = new.profile_id
+      and not p.paid;
+  else
+    insert into payments (budget_item_id, profile_id)
+    select bi.id, new.profile_id
+    from budget_items bi
+    where bi.activity_id = new.activity_id
+      and bi.payment_mode = 'advance'
+    on conflict (budget_item_id, profile_id) do nothing;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger on_participant_declined
+  after update of declined on activity_participants
+  for each row
+  when (old.declined is distinct from new.declined)
+  execute function handle_participant_declined();
 
 -- ------------------------------------------------------------
 -- TRIGGER 5 — cohérence de la date confirmée

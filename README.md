@@ -175,6 +175,13 @@ pour qu'on puisse compter dessus.
   (`src/lib/format.ts`), qui ne retombe sur le nom que si le pseudo est resté
   l'UUID posé par le trigger. Un pseudo peut contenir des espaces : c'est un nom
   d'usage, pas un identifiant technique.
+- **Les remboursements ne suivent pas les votes, mais l'absence de refus.** Une
+  ligne `payments` existe pour chaque invité qui n'a pas dit « je ne viens
+  pas » : celui qui n'a pas encore répondu garde la sienne, puisqu'on ignore
+  s'il vient. Les adosser aux votes ferait apparaître et disparaître des lignes
+  à chaque changement d'avis sur une date. Décliner efface les lignes encore
+  dues — mais jamais une ligne déjà cochée, un remboursement constaté étant un
+  fait et non une prévision.
 - **Les lignes `payments` ne sont jamais écrites par l'app.** Elles sont créées
   et supprimées par des triggers Postgres (création d'une ligne de budget en
   mode « avance », arrivée ou départ d'un participant, changement de mode de
