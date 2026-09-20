@@ -152,6 +152,12 @@ pour qu'on puisse compter dessus.
 
 ## Points d'attention
 
+- **La destination de connexion est analysée, pas devinée.** Le `next` de
+  `/login` passe par le parseur d'URL et n'est retenu que si son origine est la
+  nôtre : `//ailleurs` comme `/\ailleurs` sont ramenés à `/`. Un test sur la
+  chaîne laissait passer le second, que le navigateur réécrit en URL absolue —
+  de quoi déposer quelqu'un sur un site tiers juste après qu'il se soit
+  authentifié.
 - **Un créneau unique est retenu d'office**, par le trigger
   `confirm_lone_date_option` : une sortie à date unique n'a rien à faire
   trancher. Proposer un deuxième créneau annule cette validation automatique et
