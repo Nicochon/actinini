@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Calendar, type CalendarEvent } from "@/components/calendar";
 import { Stamp } from "@/components/ui";
 import type { ActivityStatus, DateOption } from "@/lib/database.types";
 import { formatDateRange, plural } from "@/lib/format";
@@ -13,7 +14,7 @@ type ActivityRow = {
   confirmed_date_option_id: string | null;
   confirmed_date: Pick<DateOption, "start_date" | "end_date"> | null;
   activity_participants: { profile_id: string; declined: boolean }[];
-  date_options: { id: string }[];
+  date_options: { id: string; start_date: string; end_date: string | null }[];
   votes: { date_option_id: string; profile_id: string }[];
 };
 
@@ -94,7 +95,7 @@ export default async function ActivitiesPage() {
       `id, title, status, created_at, confirmed_date_option_id,
        confirmed_date:date_options!activities_confirmed_date_option_fkey(start_date, end_date),
        activity_participants(profile_id, declined),
-       date_options!date_options_activity_id_fkey(id),
+       date_options!date_options_activity_id_fkey(id, start_date, end_date),
        votes(date_option_id, profile_id)`,
     )
     .order("created_at", { ascending: false })
@@ -115,9 +116,33 @@ export default async function ActivitiesPage() {
   const upcoming = activities.filter((a) => !isPast(a));
   const past = activities.filter(isPast);
 
+  /**
+   * Ce que le calendrier affiche : une barre par créneau encore en lice. Une
+   * fois la date tranchée, les créneaux écartés disparaissent — les garder
+   * donnerait trois week-ends à Lisbonne pour un seul voyage. Une activité
+   * annulée ne figure pas au calendrier.
+   */
+  const events: CalendarEvent[] = activities
+    .filter((activity) => activity.status !== "cancelled")
+    .flatMap((activity) => {
+      const options = activity.confirmed_date_option_id
+        ? activity.date_options.filter((o) => o.id === activity.confirmed_date_option_id)
+        : activity.date_options;
+
+      return options.map((option) => ({
+        activityId: activity.id,
+        title: activity.title,
+        start: option.start_date,
+        end: option.end_date ?? option.start_date,
+        confirmed: option.id === activity.confirmed_date_option_id,
+      }));
+    });
+
   return (
     <>
       <Header />
+
+      <Calendar events={events} />
 
       {activities.length === 0 && (
         <p className="text-ink-soft mt-5 text-center text-[13px]">

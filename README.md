@@ -105,12 +105,12 @@ src/
   app/
     login/                  connexion email / mot de passe
     (app)/                  routes protégées, avec la tab bar
-      page.tsx              liste des activités (à venir / passées)
+      page.tsx              calendrier du mois + liste (à venir / passées)
       activities/new/       création (admin uniquement)
       activities/[id]/      détail : dates, budget, participants
       accounts/             gestion des comptes (admin uniquement)
       profile/              nom, pseudo, identifiants
-  components/               tab bar + primitives visuelles
+  components/               tab bar, calendrier, primitives visuelles
   lib/
     supabase/               clients navigateur, serveur, proxy et admin
     database.types.ts       reflet manuel de schema.sql
