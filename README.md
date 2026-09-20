@@ -152,6 +152,12 @@ pour qu'on puisse compter dessus.
 
 ## Points d'attention
 
+- **Les infos de remboursement n'appartiennent qu'à leur propriétaire.** Le
+  champ libre `profiles.payment_info` (Wero, IBAN, Lydia…) est lisible par tout
+  le groupe — c'est son but — mais un trigger refuse qu'on modifie celui d'un
+  autre, l'admin compris : le privilège de rediriger un virement ne se donne pas
+  par commodité. Il s'affiche là où la question se pose, sur une activité dont
+  on doit encore sa part, et jamais à l'organisateur, qui ne se doit rien.
 - **La destination de connexion est analysée, pas devinée.** Le `next` de
   `/login` passe par le parseur d'URL et n'est retenu que si son origine est la
   nôtre : `//ailleurs` comme `/\ailleurs` sont ramenés à `/`. Un test sur la

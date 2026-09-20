@@ -23,6 +23,7 @@ export function ActivityForm({ people }: { people: Pick<Profile, "id" | "full_na
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
   const [dates, setDates] = useState<DateDraft[]>([emptyDate()]);
   const [budget, setBudget] = useState<BudgetDraft[]>([]);
   const [participantIds, setParticipantIds] = useState<string[]>([]);
@@ -38,6 +39,7 @@ export function ActivityForm({ people }: { people: Pick<Profile, "id" | "full_na
       const result = await createActivity({
         title,
         description,
+        location,
         dates: dates.map(({ start, end }) => ({ start, end })),
         budget: budget.map(({ label, amount, mode }) => ({ label, amount, mode })),
         participantIds,
@@ -68,6 +70,15 @@ export function ActivityForm({ people }: { people: Pick<Profile, "id" | "full_na
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Weekend à Lisbonne"
             required
+          />
+        </Field>
+
+        <Field label="Lieu">
+          <input
+            type="text"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="Chez Sam, 12 rue des Lilas"
           />
         </Field>
 

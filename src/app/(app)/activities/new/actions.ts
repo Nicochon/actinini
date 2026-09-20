@@ -12,6 +12,7 @@ import { requireProfile } from "@/lib/session";
 export type NewActivityInput = {
   title: string;
   description: string;
+  location: string;
   /** `end` vide = journée unique. */
   dates: { start: string; end: string }[];
   budget: { label: string; amount: string; mode: PaymentMode }[];
@@ -41,7 +42,12 @@ export async function createActivity(input: NewActivityInput): Promise<CreateRes
   // Créer l'activité. La RLS refuse ici si l'utilisateur n'est pas l'admin du groupe.
   const { data: activity, error: activityError } = await supabase
     .from("activities")
-    .insert({ title, description: String(input.description ?? "").trim() || null, created_by: profile.id })
+    .insert({
+      title,
+      description: String(input.description ?? "").trim() || null,
+      location: String(input.location ?? "").trim() || null,
+      created_by: profile.id,
+    })
     .select("id")
     .single();
 

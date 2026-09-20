@@ -32,6 +32,9 @@ create table profiles (
   full_name text not null,
   pseudo text not null unique,
   is_admin boolean not null default false,
+  -- Comment me rembourser : texte libre (Wero, IBAN, Lydia…). Lisible par
+  -- tout le groupe, modifiable par son seul propriétaire (TRIGGER 8).
+  payment_info text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -46,6 +49,8 @@ create table activities (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   description text,
+  -- Où l'on se retrouve. Vivait dans la description, mélangé au reste.
+  location text,
   status text not null default 'voting'
     check (status in ('voting', 'confirmed', 'completed', 'cancelled')),
   confirmed_date_option_id uuid,  -- FK ajoutée après date_options (références croisées)
@@ -645,6 +650,32 @@ create trigger activities_set_updated_at
   before update on activities
   for each row execute function set_updated_at();
 
+-- ------------------------------------------------------------
+-- TRIGGER 8 — propriétaire des infos de remboursement
+-- L'admin peut corriger le nom et le pseudo de n'importe qui
+-- (policy `profiles_update_admin`). Pas ceci : le privilège de
+-- rediriger un virement ne se donne pas par commodité.
+-- ------------------------------------------------------------
+create function check_payment_info_owner()
+returns trigger
+language plpgsql set search_path = public, pg_temp
+as $$
+begin
+  -- auth.uid() est null hors session (dashboard, clé secrète) : la
+  -- comparaison rend null, la condition est fausse, et l'écriture passe.
+  -- C'est la porte de service assumée, la même que pour `is_admin`.
+  if new.payment_info is distinct from old.payment_info
+     and new.id <> auth.uid() then
+    raise exception 'Les informations de remboursement ne se modifient que par leur propriétaire';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger on_profile_payment_info
+  before update of payment_info on profiles
+  for each row execute function check_payment_info_owner();
+
 
 -- ============================================================
 -- 5. ROW LEVEL SECURITY
@@ -698,7 +729,7 @@ create policy "profiles_update_admin"
 -- par colonne : un revoke sur colonnes seules resterait sans effet
 -- tant qu'un grant table couvre tout.
 revoke update on profiles from authenticated;
-grant update (full_name, pseudo) on profiles to authenticated;
+grant update (full_name, pseudo, payment_info) on profiles to authenticated;
 
 -- --- ACTIVITIES ---
 -- Voir : en être le créateur ou y être invité.

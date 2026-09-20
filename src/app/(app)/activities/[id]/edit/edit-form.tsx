@@ -21,6 +21,7 @@ export type EditableActivity = {
   id: string;
   title: string;
   description: string | null;
+  location: string | null;
   status: ActivityStatus;
   confirmed_date_option_id: string | null;
   dates: { id: string; start_date: string; end_date: string | null }[];
@@ -42,6 +43,7 @@ export function EditForm({ activity }: { activity: EditableActivity }) {
 
   const [title, setTitle] = useState(activity.title);
   const [description, setDescription] = useState(activity.description ?? "");
+  const [location, setLocation] = useState(activity.location ?? "");
   const [status, setStatus] = useState<ActivityStatus>(activity.status);
 
   const [dates, setDates] = useState<DateDraft[]>(() =>
@@ -75,6 +77,7 @@ export function EditForm({ activity }: { activity: EditableActivity }) {
         activityId: activity.id,
         title,
         description,
+        location,
         status,
         dates: dates.map(({ id, start, end }) => ({ id, start, end })),
         budget: budget.map(({ id, label, amount, mode }) => ({ id, label, amount, mode })),
@@ -122,6 +125,15 @@ export function EditForm({ activity }: { activity: EditableActivity }) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
+          />
+        </Field>
+
+        <Field label="Lieu">
+          <input
+            type="text"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="Chez Sam, 12 rue des Lilas"
           />
         </Field>
 

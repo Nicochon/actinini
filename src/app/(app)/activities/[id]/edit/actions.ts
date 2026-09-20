@@ -11,6 +11,7 @@ export type EditActivityInput = {
   activityId: string;
   title: string;
   description: string;
+  location: string;
   status: ActivityStatus;
   /** `id` absent = nouveau créneau. */
   dates: { id?: string; start: string; end: string }[];
@@ -88,7 +89,12 @@ export async function updateActivity(input: EditActivityInput): Promise<EditResu
   // périmée à cet instant.
   const { error: headerError } = await supabase
     .from("activities")
-    .update({ title, description: String(input.description ?? "").trim() || null, status })
+    .update({
+      title,
+      description: String(input.description ?? "").trim() || null,
+      location: String(input.location ?? "").trim() || null,
+      status,
+    })
     .eq("id", input.activityId);
   if (headerError) {
     return { error: "L'activité n'a pas pu être modifiée (droits insuffisants ?)." };

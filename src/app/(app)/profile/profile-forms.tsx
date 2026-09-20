@@ -29,7 +29,11 @@ function Feedback({ state }: { state: ProfileState }) {
   return null;
 }
 
-export function IdentityForm({ profile }: { profile: Pick<Profile, "full_name" | "pseudo"> }) {
+export function IdentityForm({
+  profile,
+}: {
+  profile: Pick<Profile, "full_name" | "pseudo" | "payment_info">;
+}) {
   const [state, formAction] = useActionState<ProfileState, FormData>(updateProfile, {});
 
   return (
@@ -40,6 +44,18 @@ export function IdentityForm({ profile }: { profile: Pick<Profile, "full_name" |
         </Field>
         <Field label="Pseudo — c'est lui qui s'affiche partout">
           <input type="text" name="pseudo" defaultValue={profile.pseudo} required />
+        </Field>
+        <Field label="Comment te rembourser">
+          <textarea
+            name="payment_info"
+            defaultValue={profile.payment_info ?? ""}
+            placeholder="Wero au 06 12 34 56 78, ou IBAN FR76…"
+          />
+          <p className="text-ink-soft mt-1.5 text-[12px]">
+            Affiché aux membres du groupe qui te doivent de l&apos;argent, sur les activités où
+            tu as avancé des frais. Personne d&apos;autre ne peut modifier ce champ, pas même
+            l&apos;administrateur.
+          </p>
         </Field>
         <Feedback state={state} />
         <Submit label="Enregistrer" />

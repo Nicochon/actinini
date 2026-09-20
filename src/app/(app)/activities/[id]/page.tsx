@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { Card, Perforation, SectionLabel, Stamp } from "@/components/ui";
 import type {
+  Activity,
   BudgetItem,
   DateOption,
   Payment,
@@ -30,6 +31,20 @@ type PaymentRow = Pick<
   Payment,
   "id" | "budget_item_id" | "profile_id" | "paid"
 >;
+
+/** L'activité, avec l'organisateur qu'il faudra rembourser. */
+type ActivityDetail = Pick<
+  Activity,
+  | "id"
+  | "title"
+  | "description"
+  | "location"
+  | "status"
+  | "confirmed_date_option_id"
+  | "created_by"
+> & {
+  organiser: Pick<Profile, "pseudo" | "full_name" | "payment_info"> | null;
+};
 
 /**
  * Messages rapportés par l'édition (voir `EditNotice`) : ce que la base a
@@ -62,10 +77,12 @@ export default async function ActivityDetailPage({
     supabase
       .from("activities")
       .select(
-        "id, title, description, status, confirmed_date_option_id, created_by",
+        `id, title, description, location, status, confirmed_date_option_id, created_by,
+         organiser:profiles!activities_created_by_fkey(pseudo, full_name, payment_info)`,
       )
       .eq("id", id)
-      .maybeSingle(),
+      .maybeSingle()
+      .overrideTypes<ActivityDetail>(),
     supabase
       .from("activity_participants")
       .select("declined, profile:profiles(id, full_name, pseudo)")
@@ -178,6 +195,19 @@ export default async function ActivityDetailPage({
     0,
   );
 
+  /** Ce que je dois encore à l'organisateur, sur cette activité. */
+  const myDue = payments
+    .filter((p) => p.profile_id === profile.id && !p.paid)
+    .reduce((sum, p) => {
+      const item = budgetItems.find((b) => b.id === p.budget_item_id);
+      return sum + Number(item?.amount_per_person ?? 0);
+    }, 0);
+
+  const hasAdvance = budgetItems.some((item) => item.payment_mode === "advance");
+  const organiserName = activity.organiser
+    ? displayName(activity.organiser)
+    : "l'organisateur";
+
   return (
     <>
       <Link
@@ -200,6 +230,22 @@ export default async function ActivityDetailPage({
         <h1 className="font-display mb-1.5 text-[22px] font-medium">
           {activity.title}
         </h1>
+        {activity.location && (
+          <p className="text-ink-soft mb-2 flex flex-wrap items-baseline gap-x-2 text-sm">
+            <span>{activity.location}</span>
+            {/* Lien explicite plutôt que lieu cliquable : ouvrir une carte, c'est
+                envoyer l'adresse à un tiers — autant que ce soit un geste voulu. */}
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activity.location)}`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-[12px] underline"
+            >
+              voir sur une carte
+            </a>
+          </p>
+        )}
+
         {activity.description && (
           <p className="text-ink-soft mb-3 text-sm whitespace-pre-line">
             {activity.description}
@@ -410,6 +456,31 @@ export default async function ActivityDetailPage({
                 {formatEuros(totalPerPerson)}
               </span>
             </div>
+
+            {/* La question « comment je te rembourse ? » se pose ici, et nulle
+                part ailleurs : on y répond ici plutôt que dans WhatsApp.
+                Jamais à l'organisateur : c'est lui qui a avancé, sa propre
+                ligne n'est là que pour sa part du partage. */}
+            {myDue > 0 && !isOwner && (
+              <div className="border-line-soft mt-3 border-t pt-3">
+                <p className="text-sm">
+                  Tu dois encore{" "}
+                  <span className="font-medium">{formatEuros(myDue)}</span> à{" "}
+                  {organiserName}.
+                </p>
+                <p className="text-ink-soft mt-1 text-[13px] whitespace-pre-line">
+                  {activity.organiser?.payment_info ??
+                    "Aucune information de remboursement renseignée — demande-lui."}
+                </p>
+              </div>
+            )}
+
+            {isOwner && !activity.organiser?.payment_info && hasAdvance && (
+              <p className="text-amber-deep bg-amber-pale mt-3 rounded-md px-3 py-2 text-[13px]">
+                Renseigne dans ton profil comment on te rembourse : ceux qui te doivent de
+                l&apos;argent le verront ici.
+              </p>
+            )}
           </>
         )}
 

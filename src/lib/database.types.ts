@@ -13,6 +13,8 @@ export type Profile = {
   full_name: string;
   pseudo: string;
   is_admin: boolean;
+  /** Comment me rembourser, en texte libre. Lisible par le groupe. */
+  payment_info: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -21,6 +23,8 @@ export type Activity = {
   id: string;
   title: string;
   description: string | null;
+  /** Où l'on se retrouve. */
+  location: string | null;
   status: ActivityStatus;
   confirmed_date_option_id: string | null;
   created_by: string;
@@ -116,7 +120,7 @@ export type Database = {
       activities: Table<
         Activity,
         Pick<Activity, "title" | "created_by"> &
-          Partial<Pick<Activity, "id" | "description" | "status">>
+          Partial<Pick<Activity, "id" | "description" | "location" | "status">>
       > & {
         Relationships: [
           {

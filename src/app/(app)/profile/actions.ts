@@ -8,7 +8,13 @@ import { requireProfile } from "@/lib/session";
 
 export type ProfileState = { error?: string; success?: string };
 
-/** Nom et pseudo. `is_admin` est hors de portée : le privilège est retiré en base. */
+/**
+ * Nom, pseudo et infos de remboursement.
+ *
+ * `is_admin` est hors de portée : le privilège est retiré en base. Les infos
+ * de remboursement, elles, ne sont modifiables que d'ici — un trigger refuse
+ * qu'on touche à celles de quelqu'un d'autre, fût-on l'admin.
+ */
 export async function updateProfile(
   _prev: ProfileState,
   formData: FormData,
@@ -17,12 +23,13 @@ export async function updateProfile(
 
   const fullName = String(formData.get("full_name") ?? "").trim();
   const pseudo = String(formData.get("pseudo") ?? "").trim();
+  const paymentInfo = String(formData.get("payment_info") ?? "").trim();
 
   if (!fullName || !pseudo) return { error: "Le nom et le pseudo sont obligatoires." };
 
   const { error } = await supabase
     .from("profiles")
-    .update({ full_name: fullName, pseudo })
+    .update({ full_name: fullName, pseudo, payment_info: paymentInfo || null })
     .eq("id", profile.id);
 
   if (error) {
