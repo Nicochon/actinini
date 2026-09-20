@@ -86,7 +86,11 @@ export function EditForm({ activity }: { activity: EditableActivity }) {
         setError(result.error);
         return;
       }
-      router.push(`/activities/${activity.id}`);
+      // Le message voyage par l'URL : la redirection quitte ce formulaire, et
+      // c'est sur la page de détail qu'on veut lire ce qui a changé.
+      router.push(
+        `/activities/${activity.id}${result.notice ? `?info=${result.notice}` : ""}`,
+      );
     });
   };
 

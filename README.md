@@ -152,6 +152,13 @@ pour qu'on puisse compter dessus.
 
 ## Points d'attention
 
+- **Un créneau unique est retenu d'office**, par le trigger
+  `confirm_lone_date_option` : une sortie à date unique n'a rien à faire
+  trancher. Proposer un deuxième créneau annule cette validation automatique et
+  rouvre le vote ; au-delà de deux, la date retenue a été choisie à la main et
+  le trigger n'y touche pas. Conséquence pour le code d'édition : l'en-tête
+  (dont le statut) s'écrit **avant** les créneaux, sinon la valeur affichée par
+  le formulaire, déjà périmée, écraserait la décision du trigger.
 - **Le « oui » et le « non » ne vivent pas au même endroit.** Participer, c'est
   avoir voté sur le créneau retenu (ou sur l'unique créneau proposé) : la donnée
   est une ligne de `votes`. Refuser, c'est `activity_participants.declined` —

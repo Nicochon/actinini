@@ -19,7 +19,14 @@ export type EditActivityInput = {
   deletedBudgetIds: string[];
 };
 
-export type EditResult = { error?: string; notice?: string };
+/**
+ * Ce que l'édition a décidé au-delà de ce qui était demandé, et qu'il faut
+ * dire. Un code plutôt qu'une phrase : le message est rendu par la page de
+ * détail, où l'on atterrit après la redirection (voir `NOTICES` là-bas).
+ */
+export type EditNotice = "lone-date" | "vote-reopened" | "confirmed-date-lost";
+
+export type EditResult = { error?: string; notice?: EditNotice };
 
 const STATUSES: ActivityStatus[] = ["voting", "confirmed", "completed", "cancelled"];
 
@@ -53,18 +60,41 @@ export async function updateActivity(input: EditActivityInput): Promise<EditResu
   const confirmedId = activity.confirmed_date_option_id;
   const losesConfirmedDate = Boolean(confirmedId && deletedDateIds.includes(confirmedId));
 
+  // Combien de créneaux avant et après cette modification. Un créneau unique
+  // est retenu d'office par le trigger `confirm_lone_date_option` : ces deux
+  // nombres disent si l'on entre dans ce cas, ou si l'on en sort.
+  const keptDates = dates.filter((d) => d.id).length;
+  const newDateCount = dates.filter((d) => !d.id).length;
+  const finalDateCount = keptDates + newDateCount;
+  const previousDateCount = keptDates + deletedDateIds.length;
+
   // Supprimer le créneau retenu passe `confirmed_date_option_id` à null (clé
   // étrangère `on delete set null`) : garder le statut « confirmé » laisserait
   // une activité confirmée sans date. On la remet au vote.
   const status = losesConfirmedDate && input.status === "confirmed" ? "voting" : input.status;
-  if (status === "confirmed" && !confirmedId) {
+  // Le cas `finalDateCount === 1` est toléré sans créneau retenu : le trigger
+  // en désignera un juste après, quand le dernier créneau sera en place.
+  if (status === "confirmed" && !confirmedId && finalDateCount !== 1) {
     return {
       error:
         "Aucun créneau n'est retenu : confirme d'abord une date depuis la page de l'activité.",
     };
   }
 
-  // --- Suppressions d'abord : les triggers effacent votes et paiements liés. ---
+  // --- En-tête, avant de toucher aux créneaux ---
+  // L'ordre compte : le trigger `confirm_lone_date_option` se prononce sur le
+  // statut à chaque créneau ajouté ou supprimé. Écrire l'en-tête après lui
+  // écraserait sa décision par la valeur qu'affichait le formulaire, déjà
+  // périmée à cet instant.
+  const { error: headerError } = await supabase
+    .from("activities")
+    .update({ title, description: String(input.description ?? "").trim() || null, status })
+    .eq("id", input.activityId);
+  if (headerError) {
+    return { error: "L'activité n'a pas pu être modifiée (droits insuffisants ?)." };
+  }
+
+  // --- Suppressions ensuite : les triggers effacent votes et paiements liés. ---
   if (deletedDateIds.length > 0) {
     const { error } = await supabase
       .from("date_options")
@@ -81,15 +111,6 @@ export async function updateActivity(input: EditActivityInput): Promise<EditResu
       .in("id", deletedBudgetIds)
       .eq("activity_id", input.activityId);
     if (error) return { error: "Une ligne de budget n'a pas pu être supprimée." };
-  }
-
-  // --- En-tête ---
-  const { error: headerError } = await supabase
-    .from("activities")
-    .update({ title, description: String(input.description ?? "").trim() || null, status })
-    .eq("id", input.activityId);
-  if (headerError) {
-    return { error: "L'activité n'a pas pu être modifiée (droits insuffisants ?)." };
   }
 
   // --- Créneaux existants ---
@@ -143,9 +164,15 @@ export async function updateActivity(input: EditActivityInput): Promise<EditResu
   revalidatePath(`/activities/${input.activityId}/edit`);
   revalidatePath("/");
 
-  return losesConfirmedDate
-    ? { notice: "Le créneau retenu a été supprimé : l'activité est repassée en vote." }
-    : {};
+  // Ce que le trigger a décidé dans notre dos mérite d'être dit : sans ça, on
+  // quitte le formulaire en ayant choisi « Date fixée » et on retrouve « Vote
+  // en cours » sans savoir pourquoi.
+  if (finalDateCount === 1 && previousDateCount > 1) return { notice: "lone-date" };
+  if (confirmedId && previousDateCount === 1 && finalDateCount > 1) {
+    return { notice: "vote-reopened" };
+  }
+  if (losesConfirmedDate) return { notice: "confirmed-date-lost" };
+  return {};
 }
 
 /**

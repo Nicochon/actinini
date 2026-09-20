@@ -22,16 +22,14 @@ type ActivityRow = {
  * Combien de personnes ont dit oui — ou `null` tant que la question ne se pose
  * pas.
  *
- * Même règle que la page de détail : la présence se joue sur la date retenue,
- * ou sur l'unique créneau proposé quand il n'y en a qu'un. Tant que plusieurs
- * dates sont en lice et qu'aucune n'est tranchée, un vote dit « je suis dispo
- * ce jour-là », pas « je viens » : personne n'a encore répondu à la question,
- * et la carte s'en tient au nombre d'invités.
+ * Même règle que la page de détail : la présence se joue sur la date retenue —
+ * un créneau unique l'étant d'office, par trigger. Tant que plusieurs dates
+ * sont en lice et qu'aucune n'est tranchée, un vote dit « je suis dispo ce
+ * jour-là », pas « je viens » : personne n'a encore répondu à la question, et
+ * la carte s'en tient au nombre d'invités.
  */
 function attendeeCount(activity: ActivityRow, declined: Set<string>): number | null {
-  const attendanceDateId =
-    activity.confirmed_date_option_id ??
-    (activity.date_options.length === 1 ? activity.date_options[0].id : null);
+  const attendanceDateId = activity.confirmed_date_option_id;
 
   if (!attendanceDateId) return null;
 

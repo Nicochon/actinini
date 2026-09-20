@@ -31,10 +31,24 @@ type PaymentRow = Pick<
   "id" | "budget_item_id" | "profile_id" | "paid"
 >;
 
+/**
+ * Messages rapportés par l'édition (voir `EditNotice`) : ce que la base a
+ * décidé au-delà de ce qui était demandé. Ils arrivent par `?info=`, posé au
+ * moment de la redirection.
+ */
+const NOTICES: Record<string, string> = {
+  "lone-date": "Il ne reste qu'un créneau : il est retenu d'office.",
+  "vote-reopened": "Un deuxième créneau est proposé : l'activité repasse au vote.",
+  "confirmed-date-lost": "Le créneau retenu a été supprimé : l'activité est repassée en vote.",
+};
+
 export default async function ActivityDetailPage({
   params,
+  searchParams,
 }: PageProps<"/activities/[id]">) {
   const { id } = await params;
+  const { info } = await searchParams;
+  const notice = typeof info === "string" ? NOTICES[info] : undefined;
   const { supabase, profile } = await requireProfile();
 
   const [
@@ -107,16 +121,17 @@ export default async function ActivityDetailPage({
   const isParticipant = nameOf.has(profile.id);
 
   /**
-   * Le créneau sur lequel se joue la présence : la date retenue, ou l'unique
-   * créneau quand il n'y en a qu'un.
+   * Le créneau sur lequel se joue la présence : la date retenue.
+   *
+   * Un créneau unique est retenu d'office, par trigger (voir
+   * `confirm_lone_date_option` dans schema.sql) : pas besoin d'un cas
+   * particulier ici.
    *
    * Tant qu'il vaut null — plusieurs dates, aucune tranchée — la question
    * posée reste « quand es-tu dispo ? » et personne n'a encore dit s'il
    * venait : inutile alors de distinguer invités et participants.
    */
-  const attendanceDateId =
-    activity.confirmed_date_option_id ??
-    (dateOptions.length === 1 ? dateOptions[0].id : null);
+  const attendanceDateId = activity.confirmed_date_option_id;
 
   // Une fois la date tranchée, un vote sur ce créneau vaut « je viens ». Rien
   // n'est figé pour autant : qui avait voté ailleurs peut encore se joindre,
@@ -171,6 +186,15 @@ export default async function ActivityDetailPage({
       >
         ← Retour à la liste
       </Link>
+
+      {notice && (
+        <p
+          role="status"
+          className="text-amber-deep bg-amber-pale mb-4 rounded-md px-3 py-2 text-[13px]"
+        >
+          {notice}
+        </p>
+      )}
 
       <Card>
         <h1 className="font-display mb-1.5 text-[22px] font-medium">
