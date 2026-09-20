@@ -42,9 +42,9 @@ function ErrorLine({ children }: { children?: string }) {
 }
 
 /**
- * Avec plusieurs créneaux, le bouton compte les votes. Avec un seul, il n'y a
- * rien à arbitrer : la question devient « tu viens ? ». La donnée reste un
- * vote — seule la formulation change.
+ * Le vote de disponibilité sur un créneau. La question de la présence, elle,
+ * se pose une fois pour toutes dans « Ta réponse » : elle ne vise pas une date
+ * en particulier.
  */
 export function VoteButton({
   activityId,
@@ -52,19 +52,14 @@ export function VoteButton({
   voted,
   count,
   disabled,
-  attendance = false,
 }: {
   activityId: string;
   dateOptionId: string;
   voted: boolean;
   count: number;
   disabled: boolean;
-  attendance?: boolean;
 }) {
   const { pending, error, run } = useAction();
-  const label = attendance
-    ? `${voted ? "✓ " : ""}Je participe`
-    : plural(count, "vote");
 
   return (
     <div className="shrink-0 text-right">
@@ -73,15 +68,13 @@ export function VoteButton({
         disabled={disabled || pending}
         aria-pressed={voted}
         onClick={() => run(() => toggleVote(activityId, dateOptionId))}
-        className={`rounded-[20px] border px-3.5 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-60 ${
-          attendance ? "min-w-[116px]" : "min-w-[66px]"
-        } ${
+        className={`min-w-[66px] rounded-[20px] border px-3.5 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-60 ${
           voted
             ? "bg-sage border-sage-deep text-white"
             : "bg-paper border-line text-ink-soft enabled:hover:border-ink-soft"
         }`}
       >
-        {label}
+        {plural(count, "vote")}
       </button>
       <ErrorLine>{error}</ErrorLine>
     </div>
@@ -89,45 +82,75 @@ export function VoteButton({
 }
 
 /**
- * Le « non ». Il n'a pas sa place sur une ligne de créneau : refuser ne vise
- * pas une date en particulier, mais l'activité entière — y compris quand le
- * vote porte encore sur plusieurs dates.
+ * Les deux réponses possibles à une invitation, côte à côte.
+ *
+ * Elles ne vivent pas au même endroit en base — le oui est un vote sur le
+ * créneau retenu, le non une colonne de `activity_participants` — mais pour
+ * qui répond c'est une seule question, et elle mérite sa section.
+ *
+ * Chaque bouton est un interrupteur : recliquer sur sa propre réponse
+ * l'annule et renvoie à « pas encore répondu ». Tant qu'aucune date n'est
+ * tranchée, seul le « non » est proposé : « je participe » ne voudrait rien
+ * dire tant qu'on ignore quel jour.
  */
 export function AttendanceAnswer({
   activityId,
+  attendanceDateId,
+  attending,
   declined,
 }: {
   activityId: string;
+  attendanceDateId: string | null;
+  attending: boolean;
   declined: boolean;
 }) {
   const { pending, error, run } = useAction();
 
+  const base =
+    "rounded-[20px] border px-4 py-2 text-[13px] font-medium transition-colors disabled:opacity-60";
+
   return (
-    <div className="border-line-soft mt-3 border-t pt-3">
-      {declined ? (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-brick-deep text-[13px] font-medium">
-            Tu as répondu que tu ne venais pas.
-          </span>
+    <div>
+      <div className="flex flex-wrap gap-2">
+        {attendanceDateId && (
           <button
             type="button"
             disabled={pending}
-            onClick={() => run(() => setAttendance(activityId, true))}
-            className="border-line text-ink-soft hover:border-ink-soft shrink-0 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-60"
+            aria-pressed={attending}
+            onClick={() => run(() => toggleVote(activityId, attendanceDateId))}
+            className={`${base} ${
+              attending
+                ? "bg-sage border-sage-deep text-white"
+                : "bg-paper border-line text-ink-soft enabled:hover:border-ink-soft"
+            }`}
           >
-            {pending ? "…" : "Revenir sur ma réponse"}
+            {attending ? "✓ Je participe" : "Je participe"}
           </button>
-        </div>
-      ) : (
+        )}
+
         <button
           type="button"
           disabled={pending}
-          onClick={() => run(() => setAttendance(activityId, false))}
-          className="text-ink-soft hover:text-brick-deep text-[13px] underline transition-colors disabled:opacity-60"
+          aria-pressed={declined}
+          onClick={() => run(() => setAttendance(activityId, declined))}
+          className={`${base} ${
+            declined
+              ? "bg-brick-pale border-brick text-brick-deep"
+              : "bg-paper border-line text-ink-soft enabled:hover:border-ink-soft"
+          }`}
         >
-          {pending ? "…" : "Je ne viens pas"}
+          {declined ? "✓ Je ne viens pas" : "Je ne viens pas"}
         </button>
+      </div>
+
+      {!attending && !declined && (
+        <p className="text-ink-soft mt-2 text-[13px]">
+          {attendanceDateId
+            ? "Tu n'as pas encore répondu."
+            : "Tu peux déjà dire non, sans attendre que la date soit fixée."}
+        </p>
       )}
+
       <ErrorLine>{error}</ErrorLine>
     </div>
   );

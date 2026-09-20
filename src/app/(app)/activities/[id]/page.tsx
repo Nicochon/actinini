@@ -247,7 +247,10 @@ export default async function ActivityDetailPage({
                         : wording.empty}
                     </div>
                   </div>
-                  {settled ? (
+                  {/* Une fois la date tranchée, il n'y a plus de disponibilité
+                      à donner : la question devient « tu viens ? », et elle se
+                      pose dans la section « Ta réponse ». */}
+                  {attendanceDateId ? (
                     <span className="text-ink-soft shrink-0 text-[13px]">
                       {plural(optionVotes.length, "vote")}
                     </span>
@@ -259,7 +262,6 @@ export default async function ActivityDetailPage({
                         (v) => v.profile_id === profile.id,
                       )}
                       count={optionVotes.length}
-                      attendance={isAttendanceDate}
                       // Voter suppose d'être invité : la RLS refuserait le vote sinon.
                       disabled={!isParticipant}
                     />
@@ -279,14 +281,20 @@ export default async function ActivityDetailPage({
           })
         )}
 
-        {/* Répondre non ne vise aucune date en particulier : sa place est sous
-            la liste, pas sur une ligne de créneau. Réservé aux invités — la
-            RLS refuserait la réponse de quelqu'un d'autre. */}
+        {/* ---------- Ta réponse ---------- */}
+        {/* Réservé aux invités : la RLS refuserait la réponse de quelqu'un
+            d'autre, et le créateur non invité n'a rien à répondre. */}
         {isParticipant && (
-          <AttendanceAnswer
-            activityId={activity.id}
-            declined={declinedIds.has(profile.id)}
-          />
+          <>
+            <Perforation bleed />
+            <SectionLabel>Ta réponse</SectionLabel>
+            <AttendanceAnswer
+              activityId={activity.id}
+              attendanceDateId={attendanceDateId}
+              attending={attendeeIds.has(profile.id) && !declinedIds.has(profile.id)}
+              declined={declinedIds.has(profile.id)}
+            />
+          </>
         )}
 
         {/* ---------- Budget ---------- */}

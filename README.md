@@ -157,7 +157,11 @@ pour qu'on puisse compter dessus.
   est une ligne de `votes`. Refuser, c'est `activity_participants.declined` —
   sans cette colonne, un refus serait indistinguable d'une absence de réponse.
   Décliner efface les votes de la personne sur l'activité, et voter efface son
-  refus : les deux états ne peuvent pas coexister.
+  refus : les deux états ne peuvent pas coexister. Les deux boutons vivent dans
+  la section « Ta réponse » ; chacun est un interrupteur, si bien qu'on peut
+  revenir à « pas encore répondu ». Tant qu'aucune date n'est tranchée, seul le
+  « non » est proposé — « je participe » ne veut rien dire tant qu'on ignore
+  quel jour.
 - **C'est le pseudo qui s'affiche, jamais le nom complet.** Le groupe se connaît
   sous ces pseudos-là ; l'état civil ne sert qu'à l'administration des comptes,
   où il apparaît sous le pseudo. Tout passe par `displayName()`
