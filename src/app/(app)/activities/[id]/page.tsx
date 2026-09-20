@@ -19,6 +19,7 @@ import {
 import { requireProfile } from "@/lib/session";
 
 import {
+  AttendanceAnswer,
   ConfirmDateButton,
   ParticipantsEditor,
   PaymentToggle,
@@ -53,10 +54,10 @@ export default async function ActivityDetailPage({
       .maybeSingle(),
     supabase
       .from("activity_participants")
-      .select("profile:profiles(id, full_name, pseudo)")
+      .select("declined, profile:profiles(id, full_name, pseudo)")
       .eq("activity_id", id)
       .overrideTypes<
-        { profile: Pick<Profile, "id" | "full_name" | "pseudo"> }[]
+        { declined: boolean; profile: Pick<Profile, "id" | "full_name" | "pseudo"> }[]
       >(),
     supabase
       .from("date_options")
@@ -87,7 +88,11 @@ export default async function ActivityDetailPage({
   if (!activity) notFound();
 
   const isOwner = activity.created_by === profile.id;
-  const participants = (participantsRes.data ?? []).map((row) => row.profile);
+  const participantRows = participantsRes.data ?? [];
+  const participants = participantRows.map((row) => row.profile);
+  const declinedIds = new Set(
+    participantRows.filter((row) => row.declined).map((row) => row.profile.id),
+  );
   const dateOptions: Pick<DateOption, "id" | "start_date" | "end_date">[] =
     dateOptionsRes.data ?? [];
   const votes: Pick<Vote, "date_option_id" | "profile_id">[] =
@@ -121,8 +126,18 @@ export default async function ActivityDetailPage({
       .filter((v) => v.date_option_id === attendanceDateId)
       .map((v) => v.profile_id),
   );
-  const attendees = participants.filter((p) => attendeeIds.has(p.id));
-  const awaiting = participants.filter((p) => !attendeeIds.has(p.id));
+  // Décliner efface les votes (voir `setAttendance`) : les deux ensembles sont
+  // disjoints. Le filtre reste, pour que l'affichage ne dépende pas d'un
+  // invariant tenu ailleurs.
+  const attendees = participants.filter(
+    (p) => attendeeIds.has(p.id) && !declinedIds.has(p.id),
+  );
+  const declined = participants.filter((p) => declinedIds.has(p.id));
+  /** Les invités dont on attend encore quelque chose : un refus n'en est plus un. */
+  const stillInvited = participants.filter((p) => !declinedIds.has(p.id));
+  const awaiting = participants.filter(
+    (p) => !attendeeIds.has(p.id) && !declinedIds.has(p.id),
+  );
 
   const datesLabel = !attendanceDateId
     ? "Dates proposées"
@@ -264,6 +279,16 @@ export default async function ActivityDetailPage({
           })
         )}
 
+        {/* Répondre non ne vise aucune date en particulier : sa place est sous
+            la liste, pas sur une ligne de créneau. Réservé aux invités — la
+            RLS refuserait la réponse de quelqu'un d'autre. */}
+        {isParticipant && (
+          <AttendanceAnswer
+            activityId={activity.id}
+            declined={declinedIds.has(profile.id)}
+          />
+        )}
+
         {/* ---------- Budget ---------- */}
         {/* Aucune ligne de budget : la section entière disparaît. « Pas de
             budget renseigné » suivi d'un total à zéro n'apprend rien, et une
@@ -338,7 +363,7 @@ export default async function ActivityDetailPage({
         {attendanceDateId ? (
           <>
             <SectionLabel>
-              Participants · {attendees.length} sur {participants.length}
+              Participants · {attendees.length} sur {stillInvited.length}
             </SectionLabel>
             <ParticipantsEditor
               activityId={activity.id}
@@ -349,6 +374,19 @@ export default async function ActivityDetailPage({
               isAdmin={isOwner}
               emptyLabel="Personne n'a encore confirmé sa présence."
             />
+
+            {declined.length > 0 && (
+              <div className="mt-6">
+                <SectionLabel>Ne viennent pas · {declined.length}</SectionLabel>
+                <ParticipantsEditor
+                  activityId={activity.id}
+                  participants={declined}
+                  candidates={[]}
+                  isAdmin={isOwner}
+                  muted
+                />
+              </div>
+            )}
 
             <div className="mt-6">
               <SectionLabel>En attente de réponse · {awaiting.length}</SectionLabel>
@@ -364,13 +402,28 @@ export default async function ActivityDetailPage({
           </>
         ) : (
           <>
-            <SectionLabel>{plural(participants.length, "invité")}</SectionLabel>
+            <SectionLabel>{plural(stillInvited.length, "invité")}</SectionLabel>
             <ParticipantsEditor
               activityId={activity.id}
-              participants={participants}
+              participants={stillInvited}
               candidates={candidates}
               isAdmin={isOwner}
             />
+
+            {/* Un refus se lit dès la phase de vote : inutile d'attendre
+                qu'une date soit tranchée pour savoir qui ne viendra pas. */}
+            {declined.length > 0 && (
+              <div className="mt-6">
+                <SectionLabel>Ne viennent pas · {declined.length}</SectionLabel>
+                <ParticipantsEditor
+                  activityId={activity.id}
+                  participants={declined}
+                  candidates={[]}
+                  isAdmin={isOwner}
+                  muted
+                />
+              </div>
+            )}
           </>
         )}
       </Card>

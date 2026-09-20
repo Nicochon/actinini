@@ -152,6 +152,12 @@ pour qu'on puisse compter dessus.
 
 ## Points d'attention
 
+- **Le « oui » et le « non » ne vivent pas au même endroit.** Participer, c'est
+  avoir voté sur le créneau retenu (ou sur l'unique créneau proposé) : la donnée
+  est une ligne de `votes`. Refuser, c'est `activity_participants.declined` —
+  sans cette colonne, un refus serait indistinguable d'une absence de réponse.
+  Décliner efface les votes de la personne sur l'activité, et voter efface son
+  refus : les deux états ne peuvent pas coexister.
 - **C'est le pseudo qui s'affiche, jamais le nom complet.** Le groupe se connaît
   sous ces pseudos-là ; l'état civil ne sert qu'à l'administration des comptes,
   où il apparaît sous le pseudo. Tout passe par `displayName()`

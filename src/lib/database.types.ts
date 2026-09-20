@@ -32,6 +32,8 @@ export type ActivityParticipant = {
   activity_id: string;
   profile_id: string;
   invited_at: string;
+  /** Refus explicite. Le « oui », lui, se lit dans `votes`. */
+  declined: boolean;
 };
 
 export type DateOption = {

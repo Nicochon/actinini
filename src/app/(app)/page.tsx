@@ -12,9 +12,9 @@ type ActivityRow = {
   created_at: string;
   confirmed_date_option_id: string | null;
   confirmed_date: Pick<DateOption, "start_date" | "end_date"> | null;
-  activity_participants: { count: number }[];
+  activity_participants: { profile_id: string; declined: boolean }[];
   date_options: { id: string }[];
-  votes: { date_option_id: string }[];
+  votes: { date_option_id: string; profile_id: string }[];
 };
 
 /**
@@ -27,14 +27,16 @@ type ActivityRow = {
  * ce jour-là », pas « je viens » : personne n'a encore répondu à la question,
  * et la carte s'en tient au nombre d'invités.
  */
-function attendeeCount(activity: ActivityRow): number | null {
+function attendeeCount(activity: ActivityRow, declined: Set<string>): number | null {
   const attendanceDateId =
     activity.confirmed_date_option_id ??
     (activity.date_options.length === 1 ? activity.date_options[0].id : null);
 
   if (!attendanceDateId) return null;
 
-  return activity.votes.filter((vote) => vote.date_option_id === attendanceDateId).length;
+  return activity.votes.filter(
+    (vote) => vote.date_option_id === attendanceDateId && !declined.has(vote.profile_id),
+  ).length;
 }
 
 /** Une activité est « passée » si elle est close, ou si sa date confirmée est écoulée. */
@@ -50,8 +52,12 @@ function isPast(activity: ActivityRow) {
 }
 
 function ActivityCard({ activity }: { activity: ActivityRow }) {
-  const attendees = attendeeCount(activity);
-  const invited = activity.activity_participants[0]?.count ?? 0;
+  const declined = new Set(
+    activity.activity_participants.filter((p) => p.declined).map((p) => p.profile_id),
+  );
+  const attendees = attendeeCount(activity, declined);
+  // Qui a dit non n'est plus un convive en attente : on ne le compte plus.
+  const invited = activity.activity_participants.length - declined.size;
 
   const people =
     attendees === null
@@ -87,9 +93,9 @@ export default async function ActivitiesPage() {
     .select(
       `id, title, status, created_at, confirmed_date_option_id,
        confirmed_date:date_options!activities_confirmed_date_option_fkey(start_date, end_date),
-       activity_participants(count),
+       activity_participants(profile_id, declined),
        date_options!date_options_activity_id_fkey(id),
-       votes(date_option_id)`,
+       votes(date_option_id, profile_id)`,
     )
     .order("created_at", { ascending: false })
     .overrideTypes<ActivityRow[]>();

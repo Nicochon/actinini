@@ -35,7 +35,55 @@ export async function toggleVote(activityId: string, dateOptionId: string): Prom
 
   if (error) return { error: "Ton vote n'a pas pu être enregistré." };
 
+  // Voter, c'est se manifester : un refus antérieur n'a plus lieu d'être. Le
+  // filtre sur `declined` évite de réécrire la ligne à chaque vote.
+  if (!existing) {
+    await supabase
+      .from("activity_participants")
+      .update({ declined: false })
+      .eq("activity_id", activityId)
+      .eq("profile_id", profile.id)
+      .eq("declined", true);
+  }
+
   revalidatePath(`/activities/${activityId}`);
+  revalidatePath("/");
+  return {};
+}
+
+/**
+ * Répondre « je ne viens pas », ou revenir sur ce refus.
+ *
+ * Le « oui » se lit dans `votes` ; le « non », lui, n'a pas d'autre trace
+ * possible — sans cette colonne, il serait indistinguable d'une absence de
+ * réponse. Décliner efface les votes de la personne sur l'activité : ses
+ * disponibilités ne veulent plus rien dire, et la laisser apparaître sous un
+ * créneau tromperait tout le monde.
+ */
+export async function setAttendance(
+  activityId: string,
+  coming: boolean,
+): Promise<ActionResult> {
+  const { supabase, profile } = await requireProfile();
+
+  if (!coming) {
+    await supabase
+      .from("votes")
+      .delete()
+      .eq("activity_id", activityId)
+      .eq("profile_id", profile.id);
+  }
+
+  const { error } = await supabase
+    .from("activity_participants")
+    .update({ declined: !coming })
+    .eq("activity_id", activityId)
+    .eq("profile_id", profile.id);
+
+  if (error) return { error: "Ta réponse n'a pas pu être enregistrée." };
+
+  revalidatePath(`/activities/${activityId}`);
+  revalidatePath("/");
   return {};
 }
 

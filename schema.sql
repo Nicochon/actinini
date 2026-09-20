@@ -62,6 +62,10 @@ create table activity_participants (
   activity_id uuid not null references activities(id) on delete cascade,
   profile_id uuid not null references profiles(id) on delete cascade,
   invited_at timestamptz not null default now(),
+  -- Refus explicite. Le « oui » se lit dans `votes` (un vote sur le créneau
+  -- retenu vaut « je viens ») ; sans cette colonne, un « non » serait
+  -- indistinguable d'une absence de réponse.
+  declined boolean not null default false,
   primary key (activity_id, profile_id)
 );
 
@@ -638,6 +642,16 @@ create policy "participants_insert_owner"
 create policy "participants_delete_owner"
   on activity_participants for delete to authenticated
   using (is_activity_owner(activity_id));
+
+-- Répondre à l'invitation : chacun pour lui-même, et seule la colonne
+-- `declined` est atteignable (le grant est posé juste en dessous).
+create policy "participants_update_self"
+  on activity_participants for update to authenticated
+  using (profile_id = auth.uid())
+  with check (profile_id = auth.uid());
+
+revoke update on activity_participants from authenticated;
+grant update (declined) on activity_participants to authenticated;
 
 -- --- DATE_OPTIONS ---
 create policy "date_options_select_member"

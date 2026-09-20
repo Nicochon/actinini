@@ -10,6 +10,7 @@ import {
   addParticipant,
   confirmDate,
   removeParticipant,
+  setAttendance,
   setPaymentPaid,
   toggleVote,
   type ActionResult,
@@ -82,6 +83,51 @@ export function VoteButton({
       >
         {label}
       </button>
+      <ErrorLine>{error}</ErrorLine>
+    </div>
+  );
+}
+
+/**
+ * Le « non ». Il n'a pas sa place sur une ligne de créneau : refuser ne vise
+ * pas une date en particulier, mais l'activité entière — y compris quand le
+ * vote porte encore sur plusieurs dates.
+ */
+export function AttendanceAnswer({
+  activityId,
+  declined,
+}: {
+  activityId: string;
+  declined: boolean;
+}) {
+  const { pending, error, run } = useAction();
+
+  return (
+    <div className="border-line-soft mt-3 border-t pt-3">
+      {declined ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-brick-deep text-[13px] font-medium">
+            Tu as répondu que tu ne venais pas.
+          </span>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => run(() => setAttendance(activityId, true))}
+            className="border-line text-ink-soft hover:border-ink-soft shrink-0 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-60"
+          >
+            {pending ? "…" : "Revenir sur ma réponse"}
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => run(() => setAttendance(activityId, false))}
+          className="text-ink-soft hover:text-brick-deep text-[13px] underline transition-colors disabled:opacity-60"
+        >
+          {pending ? "…" : "Je ne viens pas"}
+        </button>
+      )}
       <ErrorLine>{error}</ErrorLine>
     </div>
   );
