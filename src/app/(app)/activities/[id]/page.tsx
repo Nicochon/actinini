@@ -335,6 +335,13 @@ export default async function ActivityDetailPage({
                 (p) => p.budget_item_id === item.id,
               );
               const reimbursed = itemPayments.filter((p) => p.paid).length;
+              const detailed =
+                item.payment_mode === "advance" && itemPayments.length > 0;
+              const summary = detailed
+                ? `Avancé${isOwner ? " par toi" : ""} · ${reimbursed} sur ${itemPayments.length} ont remboursé`
+                : item.payment_mode === "advance"
+                  ? `Avancé${isOwner ? " par toi" : ""}`
+                  : "Paiement sur place";
 
               return (
                 <div
@@ -342,22 +349,36 @@ export default async function ActivityDetailPage({
                   className="border-line-soft border-b py-3 last:border-b-0"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium">{item.label}</div>
-                      <div className="text-ink-soft mt-0.5 text-xs">
-                        {item.payment_mode === "advance"
-                          ? `Avancé${isOwner ? " par toi" : ""} · ${reimbursed} sur ${itemPayments.length} ont remboursé`
-                          : "Paiement sur place"}
-                      </div>
-                    </div>
+                    <div className="min-w-0 text-sm font-medium">{item.label}</div>
                     <div className="font-display shrink-0 text-base font-medium">
                       {formatEuros(Number(item.amount_per_person))}
                     </div>
                   </div>
 
-                  {/* Suivi nominatif : visible par tous, modifiable par le créateur seul. */}
-                  {item.payment_mode === "advance" &&
-                    itemPayments.length > 0 && (
+                  {/* Le suivi nominatif est replié : on lit d'abord un montant
+                      et un décompte, et on déroule pour savoir qui doit encore.
+                      Un <details> plutôt qu'un état React — rien ici n'a besoin
+                      d'être interactif côté serveur, et il fonctionne avant même
+                      que la page soit hydratée. */}
+                  {detailed ? (
+                    <details className="group mt-0.5">
+                      <summary className="text-ink-soft hover:text-ink flex cursor-pointer list-none items-center gap-1 text-xs transition-colors [&::-webkit-details-marker]:hidden">
+                        {summary}
+                        <svg
+                          aria-hidden
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="size-3 transition-transform group-open:rotate-180"
+                        >
+                          <path d="m6 9 6 6 6-6" />
+                        </svg>
+                      </summary>
+
+                      {/* Visible par tous, modifiable par le créateur seul. */}
                       <div className="border-line-soft mt-2 ml-0.5 border-l pt-1 pl-3">
                         {itemPayments.map((payment) => (
                           <PaymentToggle
@@ -373,7 +394,10 @@ export default async function ActivityDetailPage({
                           />
                         ))}
                       </div>
-                    )}
+                    </details>
+                  ) : (
+                    <div className="text-ink-soft mt-0.5 text-xs">{summary}</div>
+                  )}
                 </div>
               );
             })}
