@@ -94,6 +94,20 @@ export function Calendar({ events }: { events: CalendarEvent[] }) {
   });
 
   const weeks = useMemo(() => weeksOf(cursor.year, cursor.month), [cursor]);
+  const weekSegments = useMemo(
+    () => weeks.map((week) => segmentsOf(week, events)),
+    [weeks, events],
+  );
+
+  /**
+   * Toutes les semaines réservent la même hauteur, celle de la plus chargée du
+   * mois. Sans cette réserve, une semaine qui reçoit une sortie pousse ses
+   * voisines vers le bas et la grille se déforme d'un mois à l'autre. Une ligne
+   * au minimum, même sur un mois sans rien : l'espacement doit être le même
+   * partout.
+   */
+  const lines = Math.max(1, ...weekSegments.map((segments) => segments.length));
+
   const shown = new Date(Date.UTC(cursor.year, cursor.month, 1));
   const onCurrentMonth =
     cursor.year === new Date().getUTCFullYear() && cursor.month === new Date().getUTCMonth();
@@ -105,12 +119,12 @@ export function Calendar({ events }: { events: CalendarEvent[] }) {
     });
 
   return (
-    <section className="border-line bg-paper-raised mb-7 rounded-[4px] border p-4">
-      <header className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="font-display text-[15px] font-medium first-letter:uppercase">
+    <section className="border-line bg-paper-raised mb-7 rounded-[4px] border p-4 sm:p-5">
+      <header className="mb-4 flex items-center justify-between gap-2">
+        <h2 className="font-display text-[17px] font-medium first-letter:uppercase">
           {monthLabel.format(shown)}
         </h2>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {!onCurrentMonth && (
             <button
               type="button"
@@ -132,14 +146,17 @@ export function Calendar({ events }: { events: CalendarEvent[] }) {
         </div>
       </header>
 
-      <div className="text-ink-soft grid grid-cols-7 text-center text-[10px] font-medium tracking-[0.04em] uppercase">
+      <div className="text-ink-soft grid grid-cols-7 text-center text-[11px] font-medium tracking-[0.04em] uppercase">
         {WEEKDAYS.map((day, index) => (
           <span key={index}>{day}</span>
         ))}
       </div>
 
-      {weeks.map((week) => (
-        <div key={iso(week[0])} className="mt-1">
+      {weeks.map((week, weekIndex) => (
+        <div
+          key={iso(week[0])}
+          className={`pt-2 pb-1.5 ${weekIndex > 0 ? "border-line-soft border-t" : ""}`}
+        >
           <div className="grid grid-cols-7 text-center">
             {week.map((day) => {
               const inMonth = day.getUTCMonth() === cursor.month;
@@ -148,13 +165,15 @@ export function Calendar({ events }: { events: CalendarEvent[] }) {
               return (
                 <span
                   key={iso(day)}
-                  className={`py-0.5 text-[12px] ${inMonth ? "text-ink" : "text-line"} ${
+                  className={`text-[13px] ${inMonth ? "text-ink" : "text-line"} ${
                     isToday ? "font-semibold" : ""
                   }`}
                 >
                   <span
                     className={
-                      isToday ? "bg-ink text-paper inline-block size-[18px] rounded-full leading-[18px]" : ""
+                      isToday
+                        ? "bg-ink text-paper inline-block size-[22px] rounded-full leading-[22px]"
+                        : "inline-block leading-[22px]"
                     }
                   >
                     {day.getUTCDate()}
@@ -164,28 +183,39 @@ export function Calendar({ events }: { events: CalendarEvent[] }) {
             })}
           </div>
 
-          {segmentsOf(week, events).map((segment, index) => (
-            <div key={`${segment.event.activityId}-${segment.event.start}-${index}`} className="grid grid-cols-7">
-              <Link
-                href={`/activities/${segment.event.activityId}`}
-                style={{ gridColumn: `${segment.column} / span ${segment.span}` }}
-                title={segment.event.title}
-                className={`mt-0.5 block truncate px-1.5 py-[3px] text-[10.5px] leading-tight font-medium transition-opacity hover:opacity-80 ${
-                  segment.event.confirmed
-                    ? "bg-sage-pale text-sage-deep border-sage border"
-                    : "border-line text-ink-soft bg-paper border border-dashed"
-                } ${segment.openLeft ? "rounded-l-none" : "rounded-l-[3px]"} ${
-                  segment.openRight ? "rounded-r-none" : "rounded-r-[3px]"
-                }`}
-              >
-                {segment.event.title}
-              </Link>
-            </div>
-          ))}
+          {/* Autant de lignes de barres que la semaine la plus chargée, les
+              vides comprises : c'est ce qui donne à toutes les semaines la
+              même hauteur. */}
+          <div className="mt-1.5 space-y-[3px]">
+            {Array.from({ length: lines }, (_, line) => {
+              const segment = weekSegments[weekIndex][line];
+
+              return (
+                <div key={line} className="grid h-[20px] grid-cols-7">
+                  {segment && (
+                    <Link
+                      href={`/activities/${segment.event.activityId}`}
+                      style={{ gridColumn: `${segment.column} / span ${segment.span}` }}
+                      title={segment.event.title}
+                      className={`block h-full truncate px-1.5 text-[11px] leading-[18px] font-medium transition-opacity hover:opacity-80 ${
+                        segment.event.confirmed
+                          ? "bg-sage-pale text-sage-deep border-sage border"
+                          : "border-line text-ink-soft bg-paper border border-dashed"
+                      } ${segment.openLeft ? "rounded-l-none" : "rounded-l-[3px]"} ${
+                        segment.openRight ? "rounded-r-none" : "rounded-r-[3px]"
+                      }`}
+                    >
+                      {segment.event.title}
+                    </Link>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       ))}
 
-      <p className="text-ink-soft mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+      <p className="text-ink-soft border-line-soft mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-3 text-[11px]">
         <span className="flex items-center gap-1.5">
           <span className="bg-sage-pale border-sage inline-block h-2.5 w-4 rounded-[2px] border" />
           date fixée
