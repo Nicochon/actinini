@@ -176,9 +176,10 @@ export function AccountCard({ account, isSelf }: { account: Account; isSelf: boo
         {isSelf && <span className="text-ink-soft text-[11px]">c&apos;est toi</span>}
       </div>
 
+      {/* Le titre porte le pseudo, sous lequel le groupe se connaît ; l'état
+          civil et l'adresse sont ici, là où l'admin en a besoin. */}
       <p className="text-ink-soft mt-1 text-[13px] break-all">
-        @{account.pseudo}
-        {account.email && ` · ${account.email}`}
+        {[account.full_name, account.email].filter(Boolean).join(" · ")}
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">

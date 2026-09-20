@@ -77,20 +77,21 @@ const RAW_UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Nom affichable d'un profil.
+ * Nom affichable d'un profil : **le pseudo**, partout dans l'app.
  *
- * Un compte créé sans `full_name` ni `pseudo` dans les métadonnées arrive ici
- * avec un nom vide et un UUID en guise de pseudo (voir `handle_new_user` dans
- * schema.sql). Rendu tel quel, il donne une pastille vide : impossible de
- * savoir qui inviter. On préfère le signaler explicitement — un compte à
- * compléter se voit, un compte invisible se subit.
+ * C'est sous ce nom-là que le groupe se connaît ; le nom d'état civil ne sert
+ * qu'à l'administration des comptes. Deux replis, dans l'ordre : un compte créé
+ * sans métadonnées reçoit son UUID en guise de pseudo (voir `handle_new_user`
+ * dans schema.sql) — inaffichable, on prend alors le nom complet ; et si les
+ * deux manquent, on le signale plutôt que de rendre une pastille vide, car un
+ * compte à compléter se voit, un compte invisible se subit.
  */
-export function displayName(person: { full_name: string; pseudo?: string }) {
+export function displayName(person: { pseudo?: string; full_name?: string }) {
+  const pseudo = person.pseudo?.trim();
+  if (pseudo && !RAW_UUID.test(pseudo)) return pseudo;
+
   const name = person.full_name?.trim();
   if (name) return name;
-
-  const pseudo = person.pseudo?.trim();
-  if (pseudo && !RAW_UUID.test(pseudo)) return `@${pseudo}`;
 
   return "Compte sans nom";
 }

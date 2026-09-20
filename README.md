@@ -44,8 +44,8 @@ se créent depuis l'onglet **Comptes** de l'app, qui fait la même chose.
 
 Si on les oublie, le trigger retombe sur la partie gauche de l'email
 (`marie@…` → `marie`), suffixée d'un chiffre si ce pseudo est déjà pris. Le
-compte reste donc identifiable dans la liste d'invitation ; le nom affiché est
-simplement approximatif, et chacun peut corriger le sien depuis l'onglet
+compte reste donc identifiable dans la liste d'invitation ; le pseudo affiché
+est simplement approximatif, et chacun peut corriger le sien depuis l'onglet
 **Profil**.
 
 Puis désigner l'administrateur du groupe, en SQL :
@@ -152,6 +152,12 @@ pour qu'on puisse compter dessus.
 
 ## Points d'attention
 
+- **C'est le pseudo qui s'affiche, jamais le nom complet.** Le groupe se connaît
+  sous ces pseudos-là ; l'état civil ne sert qu'à l'administration des comptes,
+  où il apparaît sous le pseudo. Tout passe par `displayName()`
+  (`src/lib/format.ts`), qui ne retombe sur le nom que si le pseudo est resté
+  l'UUID posé par le trigger. Un pseudo peut contenir des espaces : c'est un nom
+  d'usage, pas un identifiant technique.
 - **Les lignes `payments` ne sont jamais écrites par l'app.** Elles sont créées
   et supprimées par des triggers Postgres (création d'une ligne de budget en
   mode « avance », arrivée ou départ d'un participant, changement de mode de

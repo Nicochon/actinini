@@ -38,7 +38,7 @@ export function IdentityForm({ profile }: { profile: Pick<Profile, "full_name" |
         <Field label="Nom complet">
           <input type="text" name="full_name" defaultValue={profile.full_name} required />
         </Field>
-        <Field label="Pseudo">
+        <Field label="Pseudo — c'est lui qui s'affiche partout">
           <input type="text" name="pseudo" defaultValue={profile.pseudo} required />
         </Field>
         <Feedback state={state} />

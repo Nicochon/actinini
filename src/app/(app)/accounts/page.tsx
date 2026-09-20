@@ -38,7 +38,7 @@ export default async function AccountsPage() {
     supabase
       .from("profiles")
       .select("id, full_name, pseudo, is_admin")
-      .order("full_name")
+      .order("pseudo")
       .overrideTypes<Pick<Profile, "id" | "full_name" | "pseudo" | "is_admin">[]>(),
     readEmails(),
   ]);

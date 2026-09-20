@@ -16,7 +16,7 @@ export default async function NewActivityPage() {
   const { data } = await supabase
     .from("profiles")
     .select("id, full_name, pseudo")
-    .order("full_name")
+    .order("pseudo")
     .overrideTypes<Pick<Profile, "id" | "full_name" | "pseudo">[]>();
 
   return <ActivityForm people={data ?? []} />;

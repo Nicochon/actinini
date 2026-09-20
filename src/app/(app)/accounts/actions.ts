@@ -35,11 +35,15 @@ const NO_KEY: AccountState = {
     "(SUPABASE_SECRET_KEY) n'est pas configurée sur ce déploiement.",
 };
 
-/** Nom, pseudo et mot de passe partagent ces règles entre création et édition. */
+/**
+ * Nom et pseudo partagent ces règles entre création et édition.
+ *
+ * Le pseudo accepte les espaces : c'est un nom d'usage affiché tel quel, pas un
+ * identifiant technique — « laurie fisse » est un pseudo valide.
+ */
 function checkIdentity(fullName: string, pseudo: string): string | undefined {
   if (!fullName) return "Le nom est obligatoire.";
   if (!pseudo) return "Le pseudo est obligatoire.";
-  if (/\s/.test(pseudo)) return "Le pseudo ne peut pas contenir d'espace.";
   return undefined;
 }
 
