@@ -10,9 +10,32 @@ type ActivityRow = {
   title: string;
   status: ActivityStatus;
   created_at: string;
+  confirmed_date_option_id: string | null;
   confirmed_date: Pick<DateOption, "start_date" | "end_date"> | null;
   activity_participants: { count: number }[];
+  date_options: { id: string }[];
+  votes: { date_option_id: string }[];
 };
+
+/**
+ * Combien de personnes ont dit oui — ou `null` tant que la question ne se pose
+ * pas.
+ *
+ * Même règle que la page de détail : la présence se joue sur la date retenue,
+ * ou sur l'unique créneau proposé quand il n'y en a qu'un. Tant que plusieurs
+ * dates sont en lice et qu'aucune n'est tranchée, un vote dit « je suis dispo
+ * ce jour-là », pas « je viens » : personne n'a encore répondu à la question,
+ * et la carte s'en tient au nombre d'invités.
+ */
+function attendeeCount(activity: ActivityRow): number | null {
+  const attendanceDateId =
+    activity.confirmed_date_option_id ??
+    (activity.date_options.length === 1 ? activity.date_options[0].id : null);
+
+  if (!attendanceDateId) return null;
+
+  return activity.votes.filter((vote) => vote.date_option_id === attendanceDateId).length;
+}
 
 /** Une activité est « passée » si elle est close, ou si sa date confirmée est écoulée. */
 function isPast(activity: ActivityRow) {
@@ -27,11 +50,19 @@ function isPast(activity: ActivityRow) {
 }
 
 function ActivityCard({ activity }: { activity: ActivityRow }) {
-  const participants = activity.activity_participants[0]?.count ?? 0;
-  const meta = [
-    plural(participants, "participant invité", "participants invités"),
-    activity.confirmed_date && formatDateRange(activity.confirmed_date),
-  ].filter(Boolean);
+  const attendees = attendeeCount(activity);
+  const invited = activity.activity_participants[0]?.count ?? 0;
+
+  const people =
+    attendees === null
+      ? plural(invited, "invité")
+      : attendees === 0
+        ? "Aucun participant"
+        : plural(attendees, "participant");
+
+  const meta = [people, activity.confirmed_date && formatDateRange(activity.confirmed_date)].filter(
+    Boolean,
+  );
 
   return (
     <Link
@@ -54,9 +85,11 @@ export default async function ActivitiesPage() {
   const { data, error } = await supabase
     .from("activities")
     .select(
-      `id, title, status, created_at,
+      `id, title, status, created_at, confirmed_date_option_id,
        confirmed_date:date_options!activities_confirmed_date_option_fkey(start_date, end_date),
-       activity_participants(count)`,
+       activity_participants(count),
+       date_options!date_options_activity_id_fkey(id),
+       votes(date_option_id)`,
     )
     .order("created_at", { ascending: false })
     .overrideTypes<ActivityRow[]>();
