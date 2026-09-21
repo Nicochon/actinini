@@ -32,6 +32,22 @@
     font-family: var(--font-sans);
     font-size: 15px;
     line-height: 1.6;
+
+    /* Un mot plus large que l'écran — un IBAN, un lien de paiement, une adresse
+       collée d'un seul tenant — doit se couper plutôt que pousser la page. Sans
+       ça, un seul champ saisi par quelqu'un rend toute l'app défilable de
+       gauche à droite sur un téléphone. `anywhere` et non `break-word` : seul
+       le premier réduit aussi la largeur minimale calculée, ce qu'exigent les
+       textes placés dans une ligne flex (le lieu, les libellés de budget). */
+    overflow-wrap: anywhere;
+  }
+
+  /* Le navigateur impose aux <fieldset> un `min-inline-size: min-content` que
+     rien ne peut surcharger de l'extérieur : le bloc refuse alors de rétrécir
+     sous la largeur de son contenu, et les deux champs de date côte à côte le
+     poussent hors de l'écran sur un iPhone de 375 px. */
+  fieldset {
+    min-inline-size: 0;
   }
 
   /* Les champs partagent tous le même rendu « papier ». */
@@ -50,6 +66,24 @@
     font-family: var(--font-sans);
     font-size: 14px;
     color: var(--color-ink);
+  }
+
+  /* Safari sur iPhone zoome dès qu'on touche un champ dont le texte fait moins
+     de 16 px, et ne redézoome jamais tout à fait : la page reste plus large que
+     l'écran et se met à défiler de gauche à droite. 16 px supprime le
+     déclencheur.
+     Réservé aux écrans tactiles : à la souris le problème n'existe pas, et les
+     14 px du prototype y restent de mise. Réservé aussi aux champs qui ouvrent
+     un clavier : une date ou une liste ouvrent un sélecteur, sans zoom — et les
+     deux champs de date tiennent côte à côte à 14 px, pas à 16. */
+  @media (pointer: coarse) {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    textarea {
+      font-size: 16px;
+    }
   }
 
   input:focus-visible,

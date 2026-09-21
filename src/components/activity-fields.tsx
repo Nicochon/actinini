@@ -78,15 +78,21 @@ export function DateFieldset({
 
       {dates.map((date, index) => (
         <div key={date.key} className="mb-2">
+          {/* `min-w-0` sur les deux champs : sans lui, un champ de date refuse
+              de descendre sous la largeur de son contenu natif, et la ligne
+              déborde de l'écran sur un iPhone de 375 px — ce qui fait défiler
+              toute l'app de gauche à droite. */}
           <div className="flex gap-2">
             <input
               type="date"
+              className="min-w-0"
               value={date.start}
               aria-label={`Début du créneau ${index + 1}`}
               onChange={(e) => patch(date.key, { start: e.target.value })}
             />
             <input
               type="date"
+              className="min-w-0"
               value={date.end}
               min={date.start || undefined}
               aria-label={`Fin du créneau ${index + 1}`}
