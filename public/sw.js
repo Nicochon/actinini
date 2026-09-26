@@ -10,10 +10,16 @@
 // À incrémenter à chaque modification de ce fichier : c'est ce qui force les
 // navigateurs déjà équipés à installer la nouvelle version. Sans ça, un
 // téléphone gardant la v1 n'aurait aucun gestionnaire `push`.
-const VERSION = "v2";
+const VERSION = "v3";
 const SHELL = `actinini-shell-${VERSION}`;
 const OFFLINE_URL = "/offline";
 const PRECACHE = [OFFLINE_URL, "/icon-192.png", "/icon-512.png"];
+
+// En développement (`next dev`), les fichiers de /_next/static/ gardent le même
+// nom d'une modification à l'autre : les mettre en cache servirait l'ancienne
+// feuille de style ou l'ancien JS indéfiniment. Le worker reste enregistré —
+// les notifications se testent en local — mais ne cache rien.
+const DEV = ["localhost", "127.0.0.1", "[::1]"].includes(self.location.hostname);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -51,7 +57,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Actifs figés de Next : leur URL porte un hachage, ils ne périment jamais.
+  // Actifs figés de Next : en production leur URL porte un hachage, ils ne
+  // périment jamais.
+  if (DEV) return;
   if (url.pathname.startsWith("/_next/static/") || PRECACHE.includes(url.pathname)) {
     event.respondWith(
       caches.match(request).then(
