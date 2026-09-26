@@ -14,6 +14,8 @@ manque, et ce que chaque ajout coûte réellement.
   créneau confirmé était déjà le créneau retenu.
 - **Un invité ajouté après coup** (`addParticipant`) est prévenu, lui seul,
   avec la date si elle est déjà fixée.
+- **La relance** (`remindAwaiting`, bouton de l'organisateur) prévient ceux qui
+  n'ont pas répondu, une fois toutes les 12 h au plus (`src/lib/reminders.ts`).
 
 La tuyauterie, elle, est complète et réutilisable :
 
@@ -84,7 +86,7 @@ exactement ce qu'on veut savoir sans ouvrir l'app. Un appel dans
 - Piège : ne déclencher que sur la **bascule**, pas à chaque enregistrement
   d'une activité déjà annulée.
 
-### 4. Relancer ceux qui n'ont pas répondu
+### 4. Relancer ceux qui n'ont pas répondu — fait le 27/09
 
 Un bouton pour l'organisateur, à côté de « En attente de réponse · 4 ». Il
 réveille ces quatre-là et personne d'autre — l'équivalent du « alors, vous
@@ -124,6 +126,6 @@ donnée change.
 
 ## Ordre suggéré
 
-1 et 2 sont faits. Ensuite 3, puis 4, et 5 seulement si le
+1, 2 et 4 sont faits. Ensuite 3, et 5 seulement si le
 besoin se fait sentir — c'est le seul qui ajoute de l'infrastructure à
 entretenir.

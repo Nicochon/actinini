@@ -7,6 +7,7 @@ import { after } from "next/server";
 import type { Database } from "@/lib/database.types";
 import { displayName, formatDateRange } from "@/lib/format";
 import { notifyActivityParticipants, notifyParticipant } from "@/lib/push";
+import { awaitingIds, formatReminderTime, nextReminderAt } from "@/lib/reminders";
 import { requireProfile } from "@/lib/session";
 
 export type ActionResult = { error?: string };
@@ -179,6 +180,70 @@ export async function addParticipant(activityId: string, profileId: string): Pro
 
   revalidatePath(`/activities/${activityId}`);
   revalidatePath("/");
+  return {};
+}
+
+/**
+ * L'organisateur relance ceux dont il attend encore une réponse, et eux seuls.
+ *
+ * La liste est recalculée ici plutôt que reçue du navigateur : c'est le serveur
+ * qui décide qui reçoit une notification. Même chose pour le délai entre deux
+ * relances, que la page se contente d'afficher.
+ */
+export async function remindAwaiting(activityId: string): Promise<ActionResult> {
+  const { supabase, profile } = await requireProfile();
+
+  const { data: activity } = await supabase
+    .from("activities")
+    .select("title, status, confirmed_date_option_id, created_by, reminded_at")
+    .eq("id", activityId)
+    .maybeSingle();
+
+  if (!activity || activity.created_by !== profile.id) {
+    return { error: "Seul l'organisateur peut relancer les invités." };
+  }
+  if (activity.status !== "voting" && activity.status !== "confirmed") {
+    return { error: "Cette activité est passée ou annulée." };
+  }
+  const next = nextReminderAt(activity.reminded_at);
+  if (next) {
+    return { error: `Déjà relancé récemment. Prochaine relance possible à partir de ${formatReminderTime(next)}.` };
+  }
+
+  const [{ data: participants }, { data: votes }] = await Promise.all([
+    supabase.from("activity_participants").select("profile_id, declined").eq("activity_id", activityId),
+    supabase.from("votes").select("date_option_id, profile_id").eq("activity_id", activityId),
+  ]);
+  const targets = awaitingIds(participants ?? [], votes ?? [], activity.confirmed_date_option_id);
+  if (targets.length === 0) return { error: "Tout le monde a déjà répondu." };
+
+  // Noté avant l'envoi : un second clic pendant qu'il part est refusé.
+  const { error } = await supabase
+    .from("activities")
+    .update({ reminded_at: new Date().toISOString() })
+    .eq("id", activityId);
+  if (error) return { error: "La relance n'a pas pu être enregistrée." };
+
+  after(async () => {
+    const date = activity.confirmed_date_option_id
+      ? await dateLabel(supabase, activity.confirmed_date_option_id)
+      : null;
+    const body = date
+      ? `${activity.title} — ${date}. Tu viens ?`
+      : `${activity.title} — quelles dates te vont ?`;
+
+    await Promise.all(
+      targets.map((id) =>
+        notifyParticipant(supabase, activityId, id, {
+          title: `${displayName(profile)} attend ta réponse`,
+          body,
+          url: `/activities/${activityId}`,
+        }),
+      ),
+    );
+  });
+
+  revalidatePath(`/activities/${activityId}`);
   return {};
 }
 

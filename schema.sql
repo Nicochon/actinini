@@ -55,6 +55,9 @@ create table activities (
     check (status in ('voting', 'confirmed', 'completed', 'cancelled')),
   confirmed_date_option_id uuid,  -- FK ajoutée après date_options (références croisées)
   created_by uuid not null references profiles(id),
+  -- Dernière relance des invités sans réponse : garde-fou contre le
+  -- harcèlement (voir src/lib/reminders.ts).
+  reminded_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

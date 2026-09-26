@@ -9,6 +9,7 @@ import { displayName, plural } from "@/lib/format";
 import {
   addParticipant,
   confirmDate,
+  remindAwaiting,
   removeParticipant,
   setAttendance,
   setPaymentPaid,
@@ -175,6 +176,51 @@ export function ConfirmDateButton({
       >
         Confirmer cette date
       </button>
+      <ErrorLine>{error}</ErrorLine>
+    </div>
+  );
+}
+
+/**
+ * Relancer d'une notification ceux dont on attend encore la réponse. Les
+ * heures arrivent déjà formatées du serveur, à l'heure française : les
+ * calculer ici ferait différer le rendu serveur et le rendu navigateur.
+ */
+export function RemindButton({
+  activityId,
+  count,
+  lastReminder,
+  nextReminder,
+}: {
+  activityId: string;
+  count: number;
+  lastReminder: string | null;
+  nextReminder: string | null;
+}) {
+  const { pending, error, run } = useAction();
+  const disabled = pending || count === 0 || nextReminder !== null;
+
+  return (
+    <div className="mt-6">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => run(() => remindAwaiting(activityId))}
+        className="border-sage-deep text-sage-deep enabled:hover:bg-sage-pale w-full rounded-md border px-3.5 py-2.5 text-[14px] font-medium transition-colors disabled:opacity-50"
+      >
+        {count === 0
+          ? "Tout le monde a répondu"
+          : `Relancer ${count === 1 ? "la personne" : `les ${count} personnes`} sans réponse`}
+      </button>
+      {count > 0 && (
+        <p className="text-ink-soft mt-2 text-center text-[12px]">
+          {nextReminder
+            ? `Relancé ${lastReminder}. Nouvelle relance possible à partir de ${nextReminder}.`
+            : lastReminder
+              ? `Dernière relance : ${lastReminder}.`
+              : "Une notification leur sera envoyée. Ceux qui ont répondu ne sont pas dérangés."}
+        </p>
+      )}
       <ErrorLine>{error}</ErrorLine>
     </div>
   );

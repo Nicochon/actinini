@@ -17,6 +17,7 @@ import {
   joinNames,
   plural,
 } from "@/lib/format";
+import { awaitingIds, formatReminderTime, nextReminderAt } from "@/lib/reminders";
 import { requireProfile } from "@/lib/session";
 
 import {
@@ -24,6 +25,7 @@ import {
   ConfirmDateButton,
   ParticipantsEditor,
   PaymentToggle,
+  RemindButton,
   VoteButton,
 } from "./controls";
 
@@ -42,6 +44,7 @@ type ActivityDetail = Pick<
   | "status"
   | "confirmed_date_option_id"
   | "created_by"
+  | "reminded_at"
 > & {
   organiser: Pick<Profile, "pseudo" | "full_name" | "payment_info"> | null;
 };
@@ -77,7 +80,7 @@ export default async function ActivityDetailPage({
     supabase
       .from("activities")
       .select(
-        `id, title, description, location, status, confirmed_date_option_id, created_by,
+        `id, title, description, location, status, confirmed_date_option_id, created_by, reminded_at,
          organiser:profiles!activities_created_by_fkey(pseudo, full_name, payment_info)`,
       )
       .eq("id", id)
@@ -170,6 +173,17 @@ export default async function ActivityDetailPage({
   const awaiting = participants.filter(
     (p) => !attendeeIds.has(p.id) && !declinedIds.has(p.id),
   );
+
+  // La relance vise les mêmes personnes que `remindAwaiting`, qui recalcule
+  // de son côté : ce compte ne sert qu'à l'affichage.
+  const canRemind =
+    isOwner && (activity.status === "voting" || activity.status === "confirmed");
+  const remindCount = awaitingIds(
+    participantRows.map((row) => ({ profile_id: row.profile.id, declined: row.declined })),
+    votes,
+    attendanceDateId,
+  ).length;
+  const nextReminder = nextReminderAt(activity.reminded_at);
 
   const datesLabel = !attendanceDateId
     ? "Dates proposées"
@@ -552,6 +566,17 @@ export default async function ActivityDetailPage({
               </div>
             )}
           </>
+        )}
+
+        {canRemind && (
+          <RemindButton
+            activityId={activity.id}
+            count={remindCount}
+            lastReminder={
+              activity.reminded_at ? formatReminderTime(activity.reminded_at) : null
+            }
+            nextReminder={nextReminder ? formatReminderTime(nextReminder) : null}
+          />
         )}
       </Card>
     </>

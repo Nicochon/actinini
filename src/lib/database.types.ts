@@ -28,6 +28,8 @@ export type Activity = {
   status: ActivityStatus;
   confirmed_date_option_id: string | null;
   created_by: string;
+  /** Dernière relance des invités sans réponse. */
+  reminded_at: string | null;
   created_at: string;
   updated_at: string;
 };
