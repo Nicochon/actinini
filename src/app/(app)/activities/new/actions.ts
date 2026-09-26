@@ -5,7 +5,7 @@ import { after } from "next/server";
 
 import { parseBudget, parseDates } from "@/lib/activity-input";
 import type { PaymentMode } from "@/lib/database.types";
-import { displayName } from "@/lib/format";
+import { displayName, formatDateRange } from "@/lib/format";
 import { notifyActivityParticipants } from "@/lib/push";
 import { requireProfile } from "@/lib/session";
 
@@ -97,10 +97,17 @@ export async function createActivity(input: NewActivityInput): Promise<CreateRes
   // laisse la réponse partir et n'envoie les notifications qu'ensuite. Un
   // téléphone d'invité injoignable ne doit pas faire patienter l'organisateur
   // devant son formulaire.
+  //
+  // Une date unique est retenue d'office (trigger `confirm_lone_date_option`) :
+  // aucune notification « Date fixée » ne suivra, elle figure donc ici.
+  const lone =
+    dates.length === 1
+      ? ` — ${formatDateRange({ start_date: dates[0].start, end_date: dates[0].end })}`
+      : "";
   after(async () => {
     await notifyActivityParticipants(supabase, activity.id, {
       title: "Nouvelle activité",
-      body: `${displayName(profile)} propose : ${title}`,
+      body: `${displayName(profile)} propose : ${title}${lone}`,
       url: `/activities/${activity.id}`,
     });
   });

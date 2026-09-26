@@ -323,6 +323,23 @@ as $$
     and is_activity_owner(p_activity_id);
 $$;
 
+-- Les appareils d'un seul invité, pour prévenir quelqu'un ajouté
+-- après la création sans renotifier les autres. Limité aux invités
+-- d'une activité de l'appelant : pas de quoi joindre n'importe qui.
+create function push_targets_for_participant(p_activity_id uuid, p_profile_id uuid)
+returns table (endpoint text, p256dh text, auth text)
+language sql stable security definer set search_path = public, pg_temp
+as $$
+  select ps.endpoint, ps.p256dh, ps.auth
+  from push_subscriptions ps
+  join activity_participants ap on ap.profile_id = ps.profile_id
+  where ap.activity_id = p_activity_id
+    and ap.profile_id = p_profile_id
+    and ps.profile_id <> auth.uid()
+    -- Non-propriétaire : zéro ligne, pas d'erreur.
+    and is_activity_owner(p_activity_id);
+$$;
+
 
 -- ============================================================
 -- 4. TRIGGERS
@@ -863,7 +880,7 @@ create policy "payments_update_owner"
 -- --- PUSH_SUBSCRIPTIONS ---
 -- Chacun ne voit que ses propres appareils : de quoi s'envoyer une
 -- notification de test. L'envoi aux autres passe par
--- push_targets_for_activity().
+-- push_targets_for_activity() et push_targets_for_participant().
 --
 -- Pas de policy insert, update ni delete : l'écriture se fait
 -- uniquement par save_push_subscription() et

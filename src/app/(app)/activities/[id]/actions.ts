@@ -1,7 +1,12 @@
 "use server";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
+import type { Database } from "@/lib/database.types";
+import { displayName, formatDateRange } from "@/lib/format";
+import { notifyActivityParticipants, notifyParticipant } from "@/lib/push";
 import { requireProfile } from "@/lib/session";
 
 export type ActionResult = { error?: string };
@@ -94,12 +99,31 @@ export async function setAttendance(
 export async function confirmDate(activityId: string, dateOptionId: string): Promise<ActionResult> {
   const { supabase } = await requireProfile();
 
+  const { data: before } = await supabase
+    .from("activities")
+    .select("title, confirmed_date_option_id")
+    .eq("id", activityId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("activities")
     .update({ confirmed_date_option_id: dateOptionId, status: "confirmed" })
     .eq("id", activityId);
 
   if (error) return { error: "La date n'a pas pu être confirmée." };
+
+  // Reconfirmer le même créneau ne prévient personne une seconde fois.
+  if (before && before.confirmed_date_option_id !== dateOptionId) {
+    after(async () => {
+      const date = await dateLabel(supabase, dateOptionId);
+      if (!date) return;
+      await notifyActivityParticipants(supabase, activityId, {
+        title: "Date fixée",
+        body: `${before.title} — ${date}`,
+        url: `/activities/${activityId}`,
+      });
+    });
+  }
 
   revalidatePath(`/activities/${activityId}`);
   revalidatePath("/");
@@ -124,13 +148,34 @@ export async function setPaymentPaid(
 
 /** Inviter quelqu'un. Le trigger lui crée ses lignes de remboursement manquantes. */
 export async function addParticipant(activityId: string, profileId: string): Promise<ActionResult> {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
 
   const { error } = await supabase
     .from("activity_participants")
     .insert({ activity_id: activityId, profile_id: profileId });
 
   if (error) return { error: "Ce participant n'a pas pu être ajouté." };
+
+  // Les autres invités ont été prévenus à la création : seul l'arrivant l'est
+  // ici. La date figure dans le message si elle est déjà fixée.
+  after(async () => {
+    const { data: activity } = await supabase
+      .from("activities")
+      .select("title, confirmed_date_option_id")
+      .eq("id", activityId)
+      .maybeSingle();
+    if (!activity) return;
+
+    const date = activity.confirmed_date_option_id
+      ? await dateLabel(supabase, activity.confirmed_date_option_id)
+      : null;
+
+    await notifyParticipant(supabase, activityId, profileId, {
+      title: "Nouvelle activité",
+      body: `${displayName(profile)} t'invite : ${activity.title}${date ? ` — ${date}` : ""}`,
+      url: `/activities/${activityId}`,
+    });
+  });
 
   revalidatePath(`/activities/${activityId}`);
   revalidatePath("/");
@@ -155,4 +200,17 @@ export async function removeParticipant(
   revalidatePath(`/activities/${activityId}`);
   revalidatePath("/");
   return {};
+}
+
+/** « mar. 29 septembre » pour un créneau, ou null s'il a disparu entre-temps. */
+async function dateLabel(
+  supabase: SupabaseClient<Database>,
+  dateOptionId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("date_options")
+    .select("start_date, end_date")
+    .eq("id", dateOptionId)
+    .maybeSingle();
+  return data ? formatDateRange(data) : null;
 }

@@ -267,6 +267,10 @@ export type Database = {
         Args: { p_activity_id: string };
         Returns: { endpoint: string; p256dh: string; auth: string }[];
       };
+      push_targets_for_participant: {
+        Args: { p_activity_id: string; p_profile_id: string };
+        Returns: { endpoint: string; p256dh: string; auth: string }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

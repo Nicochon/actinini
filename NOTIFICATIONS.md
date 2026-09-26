@@ -5,8 +5,15 @@ manque, et ce que chaque ajout coûte réellement.
 
 ## Ce qui existe aujourd'hui
 
-**Un seul déclencheur** : la création d'une activité prévient ses invités,
-l'organisateur excepté (`createActivity`, via `notifyActivityParticipants()`).
+**Trois déclencheurs**, l'organisateur toujours excepté :
+
+- **La création d'une activité** prévient ses invités (`createActivity`). Si
+  une seule date est proposée, elle figure dans le message : elle est retenue
+  d'office par trigger, aucune notification « Date fixée » ne suivra.
+- **La date est fixée** (`confirmDate`) prévient tous les invités, sauf si le
+  créneau confirmé était déjà le créneau retenu.
+- **Un invité ajouté après coup** (`addParticipant`) est prévenu, lui seul,
+  avec la date si elle est déjà fixée.
 
 La tuyauterie, elle, est complète et réutilisable :
 
@@ -15,7 +22,8 @@ La tuyauterie, elle, est complète et réutilisable :
 | `src/lib/push.ts` | signature VAPID, envoi, nettoyage des appareils morts |
 | `public/sw.js` | réception et affichage, clic qui ouvre la bonne page |
 | `push_subscriptions` | un appareil abonné = une ligne |
-| `push_targets_for_activity()` | à qui envoyer, en `security definer` |
+| `push_targets_for_activity()` | à qui envoyer (tous les invités), en `security definer` |
+| `push_targets_for_participant()` | idem, pour un seul invité |
 
 Ajouter un déclencheur sur une action existante, c'est donc **un appel de
 fonction**, pas un chantier.
@@ -44,7 +52,7 @@ fonction**, pas un chantier.
 
 ## Les suites, par coût croissant
 
-### 1. La date est fixée
+### 1. La date est fixée — fait le 27/09
 
 **Le moment où tout le monde a besoin de savoir**, et le seul de la vie d'une
 sortie qui ne prévient personne. Un appel dans `confirmDate`, à destination des
@@ -55,7 +63,7 @@ invités.
 - Piège : ne pas l'envoyer deux fois si l'organisateur change d'avis et
   reconfirme le même créneau. Comparer à l'ancienne valeur avant d'envoyer.
 
-### 2. Tu es invité à une activité existante
+### 2. Tu es invité à une activité existante — fait le 27/09
 
 Quelqu'un ajouté **après** la création ne reçoit rien aujourd'hui : il n'apprend
 la sortie qu'en ouvrant l'app. Un appel dans `addParticipant`, à destination de
@@ -84,7 +92,7 @@ venez ? » dans le groupe WhatsApp, sans déranger les sept qui ont déjà répo
 
 - Coût : une server action, un bouton, et la même fonction SQL ciblée qu'au
   point 2.
-- Migration : oui, mutualisée avec le point 2.
+- Migration : non, `push_targets_for_participant()` existe depuis le point 2.
 - Piège : prévoir un garde-fou contre la relance compulsive (un envoi par jour
   et par activité, par exemple). Une app qui harcèle finit désinstallée.
 
@@ -116,6 +124,6 @@ donnée change.
 
 ## Ordre suggéré
 
-1, 3 puis 2 et 4 ensemble (ils partagent leur migration), et 5 seulement si le
+1 et 2 sont faits. Ensuite 3, puis 4, et 5 seulement si le
 besoin se fait sentir — c'est le seul qui ajoute de l'infrastructure à
 entretenir.

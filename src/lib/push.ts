@@ -108,12 +108,43 @@ export async function notifyActivityParticipants(
   activityId: string,
   payload: PushPayload,
 ): Promise<void> {
+  await deliver(
+    supabase,
+    () => supabase.rpc("push_targets_for_activity", { p_activity_id: activityId }),
+    payload,
+  );
+}
+
+/**
+ * Prévient un seul invité — celui qu'on vient d'ajouter à une activité déjà
+ * créée, sans renotifier les autres. Même détour `security definer`.
+ */
+export async function notifyParticipant(
+  supabase: SupabaseClient<Database>,
+  activityId: string,
+  profileId: string,
+  payload: PushPayload,
+): Promise<void> {
+  await deliver(
+    supabase,
+    () =>
+      supabase.rpc("push_targets_for_participant", {
+        p_activity_id: activityId,
+        p_profile_id: profileId,
+      }),
+    payload,
+  );
+}
+
+async function deliver(
+  supabase: SupabaseClient<Database>,
+  readTargets: () => PromiseLike<{ data: PushTarget[] | null; error: unknown }>,
+  payload: PushPayload,
+): Promise<void> {
   if (!ready()) return;
 
   try {
-    const { data: targets, error } = await supabase.rpc("push_targets_for_activity", {
-      p_activity_id: activityId,
-    });
+    const { data: targets, error } = await readTargets();
     if (error || !targets || targets.length === 0) return;
 
     const dead = await sendPush(targets, payload);
