@@ -26,7 +26,7 @@ export default async function EditActivityPage({
     supabase
       .from("activities")
       .select(
-        "id, title, description, location, start_time, status, confirmed_date_option_id, created_by",
+        "id, title, icon, description, location, start_time, status, confirmed_date_option_id, created_by",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -75,6 +75,7 @@ export default async function EditActivityPage({
     title: activity.title,
     description: activity.description,
     location: activity.location,
+    icon: activity.icon,
     start_time: activity.start_time,
     status: activity.status,
     confirmed_date_option_id: activity.confirmed_date_option_id,

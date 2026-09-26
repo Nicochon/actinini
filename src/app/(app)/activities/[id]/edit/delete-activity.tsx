@@ -45,17 +45,15 @@ export function DeleteActivity({
   };
 
   return (
-    <section className="border-line mt-8 border-t pt-6">
-      <h2 className="text-brick-deep mb-3 text-xs font-semibold tracking-[0.04em] uppercase">
-        Zone dangereuse
-      </h2>
+    <section className="mt-8 flex flex-col gap-3 rounded-[22px] border-[1.5px] border-[#e9b8a6] p-5">
+      <h2 className="text-brick-deep text-base font-bold">Zone sensible</h2>
 
       {armed ? (
-        <div className="border-brick bg-brick-pale rounded-[4px] border p-4">
-          <p className="text-brick-deep text-sm font-medium">
+        <div className="bg-brick-pale rounded-2xl p-4">
+          <p className="text-brick-deep text-[15px] font-bold">
             Supprimer « {title} » définitivement ?
           </p>
-          <p className="text-brick-deep mt-1 text-[13px]">
+          <p className="text-brick-deep mt-1 text-sm">
             {losses.length > 0
               ? `Cette activité et tout ce qu'elle contient seront perdus : ${losses.join(", ")}. Rien ne permet de revenir en arrière.`
               : "Rien ne permet de revenir en arrière."}
@@ -65,7 +63,7 @@ export function DeleteActivity({
               type="button"
               disabled={pending}
               onClick={remove}
-              className="bg-brick-deep rounded-md px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              className="bg-brick-deep min-h-[48px] rounded-full px-5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
             >
               {pending ? "Suppression…" : "Oui, supprimer définitivement"}
             </button>
@@ -73,20 +71,25 @@ export function DeleteActivity({
               type="button"
               disabled={pending}
               onClick={() => setArmed(false)}
-              className="border-line bg-paper-raised text-ink-soft hover:border-ink-soft rounded-md border px-4 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
+              className="border-line text-ink hover:border-ink-soft min-h-[48px] rounded-full border-[1.5px] bg-white px-5 text-sm font-semibold transition-colors disabled:opacity-60"
             >
               Annuler
             </button>
           </div>
         </div>
       ) : (
+        <>
+        <p className="text-ink-soft text-sm">
+          Supprimer l&apos;activité efface aussi les votes, le budget et les remboursements.
+        </p>
         <button
           type="button"
           onClick={() => setArmed(true)}
-          className="border-brick text-brick-deep hover:bg-brick-pale rounded-md border px-4 py-2.5 text-[13px] font-medium transition-colors"
+          className="border-brick text-brick-deep hover:bg-brick-pale min-h-[48px] rounded-full border-[1.5px] px-5 text-[15px] font-bold transition-colors"
         >
           Supprimer l&apos;activité
         </button>
+        </>
       )}
 
       {error && (

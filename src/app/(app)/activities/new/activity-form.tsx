@@ -7,10 +7,14 @@ import {
   BudgetFieldset,
   DateFieldset,
   emptyDate,
+  FormSection,
+  IconPicker,
   type BudgetDraft,
   type DateDraft,
 } from "@/components/activity-fields";
-import { Card, Field, FormError, PrimaryButton, SectionLabel } from "@/components/ui";
+import { Avatar } from "@/components/avatar";
+import { Field, FormError, PrimaryButton } from "@/components/ui";
+import { DEFAULT_ICON } from "@/lib/activity-icons";
 import type { Profile } from "@/lib/database.types";
 import { displayName } from "@/lib/format";
 
@@ -21,6 +25,7 @@ export function ActivityForm({ people }: { people: Pick<Profile, "id" | "full_na
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
 
+  const [icon, setIcon] = useState<string>(DEFAULT_ICON);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -38,6 +43,7 @@ export function ActivityForm({ people }: { people: Pick<Profile, "id" | "full_na
     setError(undefined);
     startTransition(async () => {
       const result = await createActivity({
+        icon,
         title,
         description,
         location,
@@ -62,9 +68,15 @@ export function ActivityForm({ people }: { people: Pick<Profile, "id" | "full_na
         submit();
       }}
     >
-      <SectionLabel>Créer une activité</SectionLabel>
+      <h1 className="font-display mb-5 text-[32px] leading-tight font-semibold">
+        Nouvelle activité
+      </h1>
 
-      <Card>
+      <FormSection title="L'icône">
+        <IconPicker value={icon} onChange={setIcon} />
+      </FormSection>
+
+      <FormSection>
         <Field label="Titre">
           <input
             type="text"
@@ -91,52 +103,58 @@ export function ActivityForm({ people }: { people: Pick<Profile, "id" | "full_na
             placeholder="Explique l'idée, ce qui est prévu…"
           />
         </Field>
+      </FormSection>
 
+      <FormSection title="Quand ?">
         <DateFieldset dates={dates} setDates={setDates} />
 
         <Field label="Heure (facultatif)">
           <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-          <span className="text-ink-soft mt-1 block text-[12px]">
+          <span className="text-ink-soft mt-1.5 block text-[13px]">
             Vaut pour toutes les dates proposées.
           </span>
         </Field>
+      </FormSection>
+
+      <FormSection title="Budget par personne">
         <BudgetFieldset budget={budget} setBudget={setBudget} />
+      </FormSection>
 
-        <fieldset className="mt-[18px]">
-          <legend className="text-ink-soft mb-1.5 text-[13px] font-medium">Participants</legend>
-          <div className="flex flex-wrap gap-2">
-            {people.map((person) => {
-              const selected = participantIds.includes(person.id);
-              return (
-                <button
-                  key={person.id}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => toggleParticipant(person.id)}
-                  className={`rounded-[20px] border px-3 py-1.5 text-[13px] transition-colors ${
-                    selected
-                      ? "bg-sage border-sage-deep text-white"
-                      : "border-line bg-paper text-ink-soft border-dashed"
-                  }`}
-                >
-                  {displayName(person)}
-                </button>
-              );
-            })}
-          </div>
-          {people.length === 0 && (
-            <p className="text-ink-soft text-[13px]">
-              Aucun autre compte pour l&apos;instant — crée-les depuis le dashboard Supabase.
-            </p>
-          )}
-        </fieldset>
+      <FormSection title="Qui tu invites ?">
+        <div className="flex flex-wrap gap-2">
+          {people.map((person) => {
+            const selected = participantIds.includes(person.id);
+            return (
+              <button
+                key={person.id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => toggleParticipant(person.id)}
+                className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border-2 py-1 pr-3.5 pl-1 text-sm font-semibold transition-colors ${
+                  selected
+                    ? "border-brick bg-brick-pale text-ink"
+                    : "border-line text-ink bg-white hover:border-ink-soft"
+                }`}
+              >
+                <Avatar person={person} size={32} />
+                {displayName(person)}
+                {selected && " ✓"}
+              </button>
+            );
+          })}
+        </div>
+        {people.length === 0 && (
+          <p className="text-ink-soft text-sm">
+            Aucun autre compte pour l&apos;instant — crée-les depuis l&apos;onglet « Comptes ».
+          </p>
+        )}
+      </FormSection>
 
-        <FormError>{error}</FormError>
+      <FormError>{error}</FormError>
 
-        <PrimaryButton type="submit" disabled={pending}>
-          {pending ? "Création…" : "Créer l'activité"}
-        </PrimaryButton>
-      </Card>
+      <PrimaryButton type="submit" disabled={pending}>
+        {pending ? "Création…" : "Créer l'activité"}
+      </PrimaryButton>
     </form>
   );
 }

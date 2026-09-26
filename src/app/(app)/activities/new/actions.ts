@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
+import { isIconKey, DEFAULT_ICON } from "@/lib/activity-icons";
 import { parseBudget, parseDates, parseTime } from "@/lib/activity-input";
 import type { PaymentMode } from "@/lib/database.types";
 import { displayName, formatWhen } from "@/lib/format";
@@ -10,6 +11,8 @@ import { notifyActivityParticipants } from "@/lib/push";
 import { requireProfile } from "@/lib/session";
 
 export type NewActivityInput = {
+  /** Clé de `ACTIVITY_ICONS` ; inconnue ou absente = « autre ». */
+  icon: string;
   title: string;
   description: string;
   location: string;
@@ -52,6 +55,7 @@ export async function createActivity(input: NewActivityInput): Promise<CreateRes
       description: String(input.description ?? "").trim() || null,
       location: String(input.location ?? "").trim() || null,
       start_time: parsedTime.value,
+      icon: isIconKey(input.icon) ? input.icon : DEFAULT_ICON,
       created_by: profile.id,
     })
     .select("id")

@@ -195,7 +195,8 @@ export function PushNotifications() {
       {status.kind === "off" && (
         <>
           <Explanation>
-            Reçois une alerte sur cet appareil quand une nouvelle activité t&apos;est proposée.
+            Reçois une alerte sur cet appareil quand une activité t&apos;est proposée, quand sa
+            date est fixée ou quand l&apos;organisateur attend ta réponse.
           </Explanation>
           <PrimaryButton type="button" onClick={enable} disabled={pending}>
             {pending ? "Activation…" : "Activer les notifications"}
@@ -206,12 +207,12 @@ export function PushNotifications() {
       {status.kind === "on" && (
         <>
           <Explanation>Les notifications sont actives sur cet appareil.</Explanation>
-          <div className="mt-4 flex items-center gap-4">
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
             <button
               type="button"
               onClick={test}
               disabled={pending}
-              className="text-ink-soft text-[13px] font-medium underline disabled:opacity-50"
+              className="border-line text-ink hover:border-ink-soft min-h-[44px] rounded-full border-[1.5px] px-3 text-sm font-semibold transition-colors disabled:opacity-50"
             >
               Envoyer un test
             </button>
@@ -219,7 +220,7 @@ export function PushNotifications() {
               type="button"
               onClick={disable}
               disabled={pending}
-              className="text-brick-deep text-[13px] font-medium underline disabled:opacity-50"
+              className="border-line text-brick-deep hover:border-brick min-h-[44px] rounded-full border-[1.5px] px-3 text-sm font-semibold transition-colors disabled:opacity-50"
             >
               Désactiver
             </button>
@@ -229,7 +230,7 @@ export function PushNotifications() {
 
       {feedback.error && <FormError>{feedback.error}</FormError>}
       {feedback.success && (
-        <p role="status" className="text-sage-deep bg-sage-pale mt-4 rounded-md px-3 py-2 text-[13px]">
+        <p role="status" className="text-sage-deep bg-sage-pale mt-4 rounded-2xl px-4 py-3 text-sm">
           {feedback.success}
         </p>
       )}
@@ -238,5 +239,5 @@ export function PushNotifications() {
 }
 
 function Explanation({ children }: { children: React.ReactNode }) {
-  return <p className="text-ink-soft text-[13px] leading-relaxed">{children}</p>;
+  return <p className="text-ink-soft text-sm leading-relaxed">{children}</p>;
 }

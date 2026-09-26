@@ -54,6 +54,9 @@ create table activities (
   -- À quelle heure, facultatif. Une seule pour tous les créneaux
   -- proposés ; pour un séjour, l'heure du départ.
   start_time time,
+  -- Clé de la bibliothèque d'icônes (src/lib/activity-icons.ts). Sans
+  -- contrainte : une clé inconnue s'affiche comme « autre ».
+  icon text not null default 'autre',
   status text not null default 'voting'
     check (status in ('voting', 'confirmed', 'completed', 'cancelled')),
   confirmed_date_option_id uuid,  -- FK ajoutée après date_options (références croisées)

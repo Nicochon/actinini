@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/", label: "Liste", icon: "list" },
+  { href: "/", label: "Accueil", icon: "home" },
   // « Créer » et non « Nouvelle activité » : à quatre onglets, le libellé long
   // passait sur deux lignes sur un écran de 375 px et désalignait la barre.
   { href: "/activities/new", label: "Créer", icon: "plus", adminOnly: true },
@@ -15,9 +15,9 @@ const TABS = [
 type IconName = (typeof TABS)[number]["icon"];
 
 /**
- * Icônes dessinées à la main plutôt qu'importées : quatre traits au trait fin,
+ * Icônes dessinées à la main plutôt qu'importées : quatre traits,
  * c'est moins de code qu'une dépendance, et le trait reste accordé au reste
- * (épaisseur 1.6, extrémités arrondies, aucune surface pleine).
+ * (extrémités arrondies, aucune surface pleine).
  */
 function TabIcon({ name }: { name: IconName }) {
   return (
@@ -26,17 +26,12 @@ function TabIcon({ name }: { name: IconName }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.6}
+      strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
       className="size-[21px]"
     >
-      {name === "list" && (
-        <>
-          <path d="M9 7h11M9 12h11M9 17h7" />
-          <path d="M4.5 7h.01M4.5 12h.01M4.5 17h.01" />
-        </>
-      )}
+      {name === "home" && <path d="M3.5 10.5 12 3.5l8.5 7V20.5h-17z" />}
       {name === "plus" && <path d="M12 5.5v13M5.5 12h13" />}
       {name === "users" && (
         <>
@@ -63,7 +58,9 @@ export function TabBar({ isAdmin }: { isAdmin: boolean }) {
   const tabs = TABS.filter((tab) => isAdmin || !("adminOnly" in tab));
 
   return (
-    <nav className="border-line bg-paper-raised fixed inset-x-0 bottom-0 z-10 flex gap-0.5 border-t px-[max(1rem,calc(50%-19rem))] pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+    // Barre flottante, détachée du bord : elle se pose au-dessus de l'indicateur
+    // d'accueil de l'iPhone plutôt que de s'étendre dessous.
+    <nav className="bg-ink fixed inset-x-4 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-10 mx-auto flex max-w-[600px] rounded-full px-2 py-1.5 shadow-[0_10px_30px_-12px_rgba(43,29,20,0.6)]">
       {tabs.map((tab) => {
         const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
         return (
@@ -71,20 +68,11 @@ export function TabBar({ isAdmin }: { isAdmin: boolean }) {
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg px-1 pt-1 pb-1 text-center text-[11px] leading-[1.25] font-medium transition-colors ${
-              active ? "text-ink" : "text-ink-soft"
+            className={`flex min-h-[52px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1 text-center text-[11px] leading-[1.25] font-semibold transition-colors ${
+              active ? "text-[#ffb89e]" : "text-[#cdbba8] hover:text-white"
             }`}
           >
-            {/* La pastille remplace le point indicateur d'origine : avec une
-                icône au-dessus du libellé, un troisième élément empilé aurait
-                épaissi la barre sans rien dire de plus. */}
-            <span
-              className={`rounded-[20px] px-3.5 py-0.5 transition-colors ${
-                active ? "bg-line-soft" : "bg-transparent"
-              }`}
-            >
-              <TabIcon name={tab.icon} />
-            </span>
+            <TabIcon name={tab.icon} />
             {tab.label}
           </Link>
         );

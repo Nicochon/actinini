@@ -21,7 +21,7 @@ function Feedback({ state }: { state: ProfileState }) {
   if (state.error) return <FormError>{state.error}</FormError>;
   if (state.success) {
     return (
-      <p role="status" className="text-sage-deep bg-sage-pale mt-4 rounded-md px-3 py-2 text-[13px]">
+      <p role="status" className="text-sage-deep bg-sage-pale mt-4 rounded-2xl px-4 py-3 text-sm">
         {state.success}
       </p>
     );
@@ -51,7 +51,7 @@ export function IdentityForm({
             defaultValue={profile.payment_info ?? ""}
             placeholder="Wero au 06 12 34 56 78, ou IBAN FR76…"
           />
-          <p className="text-ink-soft mt-1.5 text-[12px]">
+          <p className="text-ink-soft mt-1.5 text-[13px]">
             Affiché aux membres du groupe qui te doivent de l&apos;argent, sur les activités où
             tu as avancé des frais. Personne d&apos;autre ne peut modifier ce champ, pas même
             l&apos;administrateur.

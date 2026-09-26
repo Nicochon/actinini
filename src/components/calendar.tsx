@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { todayInParis } from "@/lib/format";
+
 /**
  * Un créneau posé sur le calendrier. Une activité en cours de vote en fournit
  * autant qu'elle propose de dates ; une fois la date tranchée, il n'en reste
@@ -16,9 +18,11 @@ export type CalendarEvent = {
   /** Même valeur que `start` pour une journée unique. */
   end: string;
   confirmed: boolean;
+  /** « 20h », si l'activité a une heure. */
+  time?: string | null;
 };
 
-const WEEKDAYS = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
+const WEEKDAYS = ["L", "M", "M", "J", "V", "S", "D"];
 
 const monthLabel = new Intl.DateTimeFormat("fr-FR", {
   month: "long",
@@ -57,60 +61,58 @@ function weeksOf(year: number, month: number) {
   return weeks;
 }
 
-/**
- * Les segments à tracer sur une semaine.
- *
- * Un séjour à cheval sur deux semaines donne un segment dans chacune, coupé au
- * bord : c'est ce découpage qui permet de tracer une barre continue par ligne
- * plutôt qu'une pastille par jour.
- */
-function segmentsOf(week: Date[], events: CalendarEvent[]) {
-  const from = iso(week[0]);
-  const to = iso(week[6]);
+const dayLabel = new Intl.DateTimeFormat("fr-FR", {
+  weekday: "short",
+  day: "numeric",
+  timeZone: "UTC",
+});
+const dayMonthLabel = new Intl.DateTimeFormat("fr-FR", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
 
-  return events
-    .filter((event) => event.start <= to && event.end >= from)
-    .sort((a, b) => a.start.localeCompare(b.start) || a.title.localeCompare(b.title))
-    .map((event) => {
-      const startIndex = event.start <= from ? 0 : week.findIndex((day) => iso(day) === event.start);
-      const endIndex = event.end >= to ? 6 : week.findIndex((day) => iso(day) === event.end);
+/** « mar. 29 » pour un jour, « 16 → 18 oct. » pour un séjour. */
+function spanLabel(event: CalendarEvent) {
+  const start = new Date(`${event.start}T00:00:00Z`);
+  if (event.start === event.end) return dayLabel.format(start);
+  const end = new Date(`${event.end}T00:00:00Z`);
+  return `${start.getUTCDate()} → ${dayMonthLabel.format(end)}`;
+}
 
-      return {
-        event,
-        column: startIndex + 1,
-        span: endIndex - startIndex + 1,
-        /** Une barre coupée par le bord de la semaine ne s'arrondit pas de ce côté. */
-        openLeft: event.start < from,
-        openRight: event.end > to,
-      };
-    });
+/** Le mois en cours, à l'heure française. */
+function currentMonth() {
+  const [year, month] = todayInParis().split("-").map(Number);
+  return { year, month: month - 1 };
 }
 
 export function Calendar({ events }: { events: CalendarEvent[] }) {
-  const today = iso(new Date());
-  const [cursor, setCursor] = useState(() => {
-    const now = new Date();
-    return { year: now.getUTCFullYear(), month: now.getUTCMonth() };
-  });
+  const today = todayInParis();
+  const [cursor, setCursor] = useState(currentMonth);
 
   const weeks = useMemo(() => weeksOf(cursor.year, cursor.month), [cursor]);
-  const weekSegments = useMemo(
-    () => weeks.map((week) => segmentsOf(week, events)),
-    [weeks, events],
-  );
-
-  /**
-   * Toutes les semaines réservent la même hauteur, celle de la plus chargée du
-   * mois. Sans cette réserve, une semaine qui reçoit une sortie pousse ses
-   * voisines vers le bas et la grille se déforme d'un mois à l'autre. Une ligne
-   * au minimum, même sur un mois sans rien : l'espacement doit être le même
-   * partout.
-   */
-  const lines = Math.max(1, ...weekSegments.map((segments) => segments.length));
 
   const shown = new Date(Date.UTC(cursor.year, cursor.month, 1));
-  const onCurrentMonth =
-    cursor.year === new Date().getUTCFullYear() && cursor.month === new Date().getUTCMonth();
+  const monthStart = iso(shown);
+  const monthEnd = iso(new Date(Date.UTC(cursor.year, cursor.month + 1, 0)));
+  const now = currentMonth();
+  const onCurrentMonth = cursor.year === now.year && cursor.month === now.month;
+
+  /** Les sorties qui touchent le mois affiché, dans l'ordre. */
+  const monthEvents = events
+    .filter((event) => event.start <= monthEnd && event.end >= monthStart)
+    .sort((a, b) => a.start.localeCompare(b.start) || a.title.localeCompare(b.title));
+
+  /**
+   * L'état d'un jour : fixé l'emporte sur « en vote ». Un jour couvert par une
+   * sortie confirmée et par un créneau encore en lice se lit comme pris.
+   */
+  const stateOf = (day: string) => {
+    const covering = monthEvents.filter((event) => event.start <= day && event.end >= day);
+    if (covering.some((event) => event.confirmed)) return "confirmed";
+    if (covering.length > 0) return "voting";
+    return null;
+  };
 
   const shift = (months: number) =>
     setCursor(({ year, month }) => {
@@ -119,133 +121,119 @@ export function Calendar({ events }: { events: CalendarEvent[] }) {
     });
 
   return (
-    <section className="border-line bg-paper-raised mb-7 rounded-[4px] border p-4 sm:p-5">
-      <header className="mb-4 flex items-center justify-between gap-2">
-        <h2 className="font-display text-[17px] font-medium first-letter:uppercase">
+    <section className="bg-paper-raised mb-7 rounded-[24px] px-3.5 pt-4 pb-3.5 shadow-[0_1px_0_var(--color-line)]">
+      <header className="mb-2 flex items-center justify-between gap-2 px-1">
+        <h2 className="font-display text-[20px] font-semibold first-letter:uppercase">
           {monthLabel.format(shown)}
         </h2>
         <div className="flex items-center gap-1.5">
           {!onCurrentMonth && (
             <button
               type="button"
-              onClick={() => {
-                const now = new Date();
-                setCursor({ year: now.getUTCFullYear(), month: now.getUTCMonth() });
-              }}
-              className="text-ink-soft hover:text-ink mr-1 text-[12px] underline transition-colors"
+              onClick={() => setCursor(currentMonth())}
+              className="text-brick hover:text-brick-deep mr-1 text-[13px] font-semibold"
             >
               Aujourd&apos;hui
             </button>
           )}
-          <NavButton label="Mois précédent" onClick={() => shift(-1)}>
-            ‹
-          </NavButton>
-          <NavButton label="Mois suivant" onClick={() => shift(1)}>
-            ›
-          </NavButton>
+          <NavButton label="Mois précédent" onClick={() => shift(-1)} path="M15 5l-7 7 7 7" />
+          <NavButton label="Mois suivant" onClick={() => shift(1)} path="M9 5l7 7-7 7" />
         </div>
       </header>
 
-      <div className="text-ink-soft grid grid-cols-7 text-center text-[11px] font-medium tracking-[0.04em] uppercase">
+      <div className="text-ink-soft grid grid-cols-7 pt-1 text-center text-[12px] font-bold">
         {WEEKDAYS.map((day, index) => (
           <span key={index}>{day}</span>
         ))}
       </div>
 
-      {weeks.map((week, weekIndex) => (
-        <div
-          key={iso(week[0])}
-          className={`pt-2 pb-1.5 ${weekIndex > 0 ? "border-line-soft border-t" : ""}`}
-        >
-          <div className="grid grid-cols-7 text-center">
-            {week.map((day) => {
-              const inMonth = day.getUTCMonth() === cursor.month;
-              const isToday = iso(day) === today;
+      <div className="grid grid-cols-7 gap-y-0.5 pt-1">
+        {weeks.flat().map((day) => {
+          const key = iso(day);
+          const inMonth = day.getUTCMonth() === cursor.month;
+          const state = inMonth ? stateOf(key) : null;
+          const isToday = key === today;
 
-              return (
-                <span
-                  key={iso(day)}
-                  className={`text-[13px] ${inMonth ? "text-ink" : "text-line"} ${
-                    isToday ? "font-semibold" : ""
-                  }`}
-                >
-                  <span
-                    className={
-                      isToday
-                        ? "bg-ink text-paper inline-block size-[22px] rounded-full leading-[22px]"
-                        : "inline-block leading-[22px]"
-                    }
-                  >
-                    {day.getUTCDate()}
-                  </span>
-                </span>
-              );
-            })}
-          </div>
+          const tone =
+            state === "confirmed"
+              ? "bg-brick text-white font-bold"
+              : state === "voting"
+                ? "border-brick text-brick-deep border-2 border-dashed font-bold"
+                : isToday
+                  ? "border-ink border-2 font-bold"
+                  : "";
 
-          {/* Autant de lignes de barres que la semaine la plus chargée, les
-              vides comprises : c'est ce qui donne à toutes les semaines la
-              même hauteur. */}
-          <div className="mt-1.5 space-y-[3px]">
-            {Array.from({ length: lines }, (_, line) => {
-              const segment = weekSegments[weekIndex][line];
+          return (
+            <span key={key} className="flex h-10 items-center justify-center">
+              <span
+                className={`flex size-[34px] items-center justify-center rounded-full text-sm ${
+                  inMonth ? "text-ink" : "text-line"
+                } ${tone} ${isToday && state ? "ring-ink ring-2 ring-offset-2 ring-offset-[var(--color-paper-raised)]" : ""}`}
+              >
+                {day.getUTCDate()}
+              </span>
+            </span>
+          );
+        })}
+      </div>
 
-              return (
-                <div key={line} className="grid h-[20px] grid-cols-7">
-                  {segment && (
-                    <Link
-                      href={`/activities/${segment.event.activityId}`}
-                      style={{ gridColumn: `${segment.column} / span ${segment.span}` }}
-                      title={segment.event.title}
-                      className={`block h-full truncate px-1.5 text-[11px] leading-[18px] font-medium transition-opacity hover:opacity-80 ${
-                        segment.event.confirmed
-                          ? "bg-sage-pale text-sage-deep border-sage border"
-                          : "border-line text-ink-soft bg-paper border border-dashed"
-                      } ${segment.openLeft ? "rounded-l-none" : "rounded-l-[3px]"} ${
-                        segment.openRight ? "rounded-r-none" : "rounded-r-[3px]"
-                      }`}
-                    >
-                      {segment.event.title}
-                    </Link>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-
-      <p className="text-ink-soft border-line-soft mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-3 text-[11px]">
-        <span className="flex items-center gap-1.5">
-          <span className="bg-sage-pale border-sage inline-block h-2.5 w-4 rounded-[2px] border" />
-          date fixée
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="border-line bg-paper inline-block h-2.5 w-4 rounded-[2px] border border-dashed" />
-          en cours de vote
-        </span>
-      </p>
+      <div className="border-line-soft mt-1 flex flex-col gap-1 border-t px-1 pt-3">
+        {monthEvents.length === 0 && (
+          <p className="text-ink-soft py-1 text-sm">Rien de prévu ce mois-ci.</p>
+        )}
+        {monthEvents.map((event) => (
+          <Link
+            key={`${event.activityId}-${event.start}`}
+            href={`/activities/${event.activityId}`}
+            className="hover:bg-paper -mx-1 flex min-h-[40px] items-center gap-2.5 rounded-xl px-1 text-sm transition-colors"
+          >
+            <span
+              aria-hidden
+              className={`size-2.5 shrink-0 rounded-full ${
+                event.confirmed ? "bg-brick" : "border-brick border-2 border-dashed"
+              }`}
+            />
+            <span className="min-w-0">
+              <strong className="font-bold">{spanLabel(event)}</strong> · {event.title}
+              {event.time ? `, ${event.time}` : ""}
+            </span>
+          </Link>
+        ))}
+        <p className="text-ink-soft flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 pb-0.5 text-[12px]">
+          <span className="flex items-center gap-1.5">
+            <span className="bg-brick inline-block size-2.5 rounded-full" />
+            date fixée
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="border-brick inline-block size-2.5 rounded-full border-2 border-dashed" />
+            en vote
+          </span>
+        </p>
+      </div>
     </section>
   );
 }
 
-function NavButton({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  children: string;
-}) {
+function NavButton({ label, onClick, path }: { label: string; onClick: () => void; path: string }) {
   return (
     <button
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="border-line text-ink-soft hover:border-ink-soft flex size-7 items-center justify-center rounded-md border text-[15px] transition-colors"
+      className="bg-paper hover:bg-line-soft text-ink flex size-11 items-center justify-center rounded-full transition-colors"
     >
-      {children}
+      <svg
+        aria-hidden
+        viewBox="0 0 24 24"
+        width={18}
+        height={18}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2.2}
+        strokeLinecap="round"
+      >
+        <path d={path} />
+      </svg>
     </button>
   );
 }

@@ -3,12 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { DEFAULT_ICON, isIconKey } from "@/lib/activity-icons";
 import { parseBudget, parseDates, parseIds, parseTime } from "@/lib/activity-input";
 import type { ActivityStatus, PaymentMode } from "@/lib/database.types";
 import { requireProfile } from "@/lib/session";
 
 export type EditActivityInput = {
   activityId: string;
+  /** Clé de `ACTIVITY_ICONS` ; inconnue = « autre ». */
+  icon: string;
   title: string;
   description: string;
   location: string;
@@ -99,6 +102,7 @@ export async function updateActivity(input: EditActivityInput): Promise<EditResu
       description: String(input.description ?? "").trim() || null,
       location: String(input.location ?? "").trim() || null,
       start_time: parsedTime.value,
+      icon: isIconKey(input.icon) ? input.icon : DEFAULT_ICON,
       status,
     })
     .eq("id", input.activityId);

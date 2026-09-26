@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from "react";
 
+import { Avatar } from "@/components/avatar";
 import { AddButton, Chip } from "@/components/ui";
 import type { Profile } from "@/lib/database.types";
-import { displayName, plural } from "@/lib/format";
+import { displayName } from "@/lib/format";
 
 import {
   addParticipant,
@@ -51,13 +52,11 @@ export function VoteButton({
   activityId,
   dateOptionId,
   voted,
-  count,
   disabled,
 }: {
   activityId: string;
   dateOptionId: string;
   voted: boolean;
-  count: number;
   disabled: boolean;
 }) {
   const { pending, error, run } = useAction();
@@ -69,13 +68,13 @@ export function VoteButton({
         disabled={disabled || pending}
         aria-pressed={voted}
         onClick={() => run(() => toggleVote(activityId, dateOptionId))}
-        className={`min-w-[66px] rounded-[20px] border px-3.5 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-60 ${
+        className={`min-h-[44px] rounded-full border-2 px-4 text-sm font-bold transition-colors disabled:opacity-60 ${
           voted
-            ? "bg-sage border-sage-deep text-white"
-            : "bg-paper border-line text-ink-soft enabled:hover:border-ink-soft"
+            ? "bg-brick border-brick text-white"
+            : "border-line text-ink enabled:hover:border-ink-soft bg-transparent"
         }`}
       >
-        {plural(count, "vote")}
+        {voted ? "Dispo ✓" : "Je suis dispo"}
       </button>
       <ErrorLine>{error}</ErrorLine>
     </div>
@@ -108,11 +107,11 @@ export function AttendanceAnswer({
   const { pending, error, run } = useAction();
 
   const base =
-    "rounded-[20px] border px-4 py-2 text-[13px] font-medium transition-colors disabled:opacity-60";
+    "min-h-[52px] rounded-full border-2 px-4 text-[15px] font-bold transition-colors disabled:opacity-60";
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2">
+      <div className={`grid gap-2.5 ${attendanceDateId ? "grid-cols-2" : "grid-cols-1"}`}>
         {attendanceDateId && (
           <button
             type="button"
@@ -121,11 +120,11 @@ export function AttendanceAnswer({
             onClick={() => run(() => toggleVote(activityId, attendanceDateId))}
             className={`${base} ${
               attending
-                ? "bg-sage border-sage-deep text-white"
-                : "bg-paper border-line text-ink-soft enabled:hover:border-ink-soft"
+                ? "bg-sage border-sage text-white"
+                : "border-line text-ink enabled:hover:border-ink-soft bg-transparent"
             }`}
           >
-            {attending ? "✓ Je participe" : "Je participe"}
+            {attending ? "Je viens ✓" : "Je viens"}
           </button>
         )}
 
@@ -137,15 +136,15 @@ export function AttendanceAnswer({
           className={`${base} ${
             declined
               ? "bg-brick-pale border-brick text-brick-deep"
-              : "bg-paper border-line text-ink-soft enabled:hover:border-ink-soft"
+              : "border-line text-ink enabled:hover:border-ink-soft bg-transparent"
           }`}
         >
-          {declined ? "✓ Je ne viens pas" : "Je ne viens pas"}
+          {declined ? "Je ne viens pas ✓" : "Je ne viens pas"}
         </button>
       </div>
 
       {!attending && !declined && (
-        <p className="text-ink-soft mt-2 text-[13px]">
+        <p className="text-ink-soft mt-2.5 text-[13px]">
           {attendanceDateId
             ? "Tu n'as pas encore répondu."
             : "Tu peux déjà dire non, sans attendre que la date soit fixée."}
@@ -172,9 +171,9 @@ export function ConfirmDateButton({
         type="button"
         disabled={pending}
         onClick={() => run(() => confirmDate(activityId, dateOptionId))}
-        className="border-sage-deep text-sage-deep hover:bg-sage-pale rounded-md border px-3.5 py-2 text-[13px] font-medium transition-colors disabled:opacity-60"
+        className="text-brick hover:text-brick-deep min-h-[44px] text-sm font-bold transition-colors disabled:opacity-60"
       >
-        Confirmer cette date
+        Retenir cette date
       </button>
       <ErrorLine>{error}</ErrorLine>
     </div>
@@ -206,14 +205,14 @@ export function RemindButton({
         type="button"
         disabled={disabled}
         onClick={() => run(() => remindAwaiting(activityId))}
-        className="border-sage-deep text-sage-deep enabled:hover:bg-sage-pale w-full rounded-md border px-3.5 py-2.5 text-[14px] font-medium transition-colors disabled:opacity-50"
+        className="bg-ink text-paper enabled:hover:bg-ink-hover disabled:bg-paper-sunk disabled:text-ink-soft min-h-[52px] w-full rounded-full px-4 text-[15px] font-bold transition-colors"
       >
         {count === 0
           ? "Tout le monde a répondu"
           : `Relancer ${count === 1 ? "la personne" : `les ${count} personnes`} sans réponse`}
       </button>
       {count > 0 && (
-        <p className="text-ink-soft mt-2 text-center text-[12px]">
+        <p className="text-ink-soft mt-2 text-center text-[13px]">
           {nextReminder
             ? `Relancé ${lastReminder}. Nouvelle relance possible à partir de ${nextReminder}.`
             : lastReminder
@@ -243,20 +242,21 @@ export function PaymentToggle({
 
   return (
     <div>
+      {/* Posé sur la carte sombre du budget : textes clairs. */}
       <label
-        className={`flex items-center gap-2 py-1 text-[13px] ${
+        className={`flex min-h-[40px] items-center gap-2.5 text-sm ${
           canEdit ? "cursor-pointer" : "cursor-default"
-        } ${paid ? "text-ink" : "text-ink-soft"}`}
+        } ${paid ? "text-paper" : "text-[#cdbba8]"}`}
       >
         <input
           type="checkbox"
           checked={paid}
           disabled={!canEdit || pending}
           onChange={(event) => run(() => setPaymentPaid(activityId, paymentId, event.target.checked))}
-          className="accent-sage size-4 w-auto"
+          className="accent-amber size-[18px] min-h-0 w-auto"
         />
-        <span className={paid ? "" : "opacity-80"}>{name}</span>
-        {paid && <span className="text-sage-deep text-[12px]">remboursé</span>}
+        <span>{name}</span>
+        {paid && <span className="text-[12px] font-semibold text-[#c6d8b8]">remboursé</span>}
       </label>
       <ErrorLine>{error}</ErrorLine>
     </div>
@@ -285,7 +285,8 @@ export function ParticipantsEditor({
     <div>
       <div className="flex flex-wrap gap-2">
         {participants.map((person) => (
-          <Chip key={person.id} className={muted ? "border-dashed" : ""}>
+          <Chip key={person.id} className={muted ? "opacity-60" : ""}>
+            <Avatar person={person} size={32} />
             {displayName(person)}
             {isAdmin && (
               <button
@@ -293,7 +294,7 @@ export function ParticipantsEditor({
                 disabled={pending}
                 aria-label={`Retirer ${displayName(person)}`}
                 onClick={() => run(() => removeParticipant(activityId, person.id))}
-                className="text-brick hover:text-brick-deep -mr-1 px-1 leading-none disabled:opacity-60"
+                className="text-ink-soft hover:text-brick -my-1 -mr-2 flex size-8 items-center justify-center rounded-full leading-none disabled:opacity-60"
               >
                 ✕
               </button>
@@ -315,14 +316,14 @@ export function ParticipantsEditor({
                   type="button"
                   disabled={pending}
                   onClick={() => run(() => addParticipant(activityId, person.id))}
-                  className="border-line bg-paper hover:border-ink-soft rounded-[20px] border border-dashed px-3 py-1.5 text-[13px] transition-colors disabled:opacity-60"
+                  className="border-line hover:border-ink-soft inline-flex min-h-[44px] items-center gap-2 rounded-full border-[1.5px] border-dashed bg-transparent py-1 pr-3.5 pl-1 text-sm font-semibold transition-colors disabled:opacity-60"
                 >
-                  + {displayName(person)}
+                  <Avatar person={person} size={32} />+ {displayName(person)}
                 </button>
               ))}
             </div>
           ) : (
-            <AddButton onClick={() => setAdding(true)}>+ Ajouter un participant</AddButton>
+            <AddButton onClick={() => setAdding(true)}>+ Inviter quelqu&apos;un</AddButton>
           )}
         </div>
       )}

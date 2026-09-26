@@ -6,7 +6,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <>
-      <main className="mx-auto w-full max-w-[640px] px-5 pt-8 pb-24">{children}</main>
+      <main className="mx-auto w-full max-w-[640px] px-5 pt-7 pb-32">{children}</main>
       <TabBar isAdmin={profile.is_admin} />
     </>
   );

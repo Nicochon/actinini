@@ -1,8 +1,10 @@
 "use client";
 
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 
+import { ActivityIcon } from "@/components/activity-icon";
 import { AddButton } from "@/components/ui";
+import { ACTIVITY_ICONS } from "@/lib/activity-icons";
 import type { PaymentMode } from "@/lib/database.types";
 
 /**
@@ -40,7 +42,7 @@ function RemoveButton({ label, onClick }: { label: string; onClick: () => void }
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="border-line text-brick hover:border-brick w-[38px] shrink-0 rounded-md border transition-colors"
+      className="bg-brick-pale text-brick hover:bg-brick hover:text-white flex size-11 shrink-0 items-center justify-center self-center rounded-full font-bold transition-colors"
     >
       ✕
     </button>
@@ -48,7 +50,7 @@ function RemoveButton({ label, onClick }: { label: string; onClick: () => void }
 }
 
 function Warning({ children }: { children: React.ReactNode }) {
-  return <p className="text-amber-deep mt-1 text-[12px]">{children}</p>;
+  return <p className="text-amber-deep mt-1.5 text-[13px]">{children}</p>;
 }
 
 export function DateFieldset({
@@ -71,9 +73,10 @@ export function DateFieldset({
   };
 
   return (
-    <fieldset className="mt-[18px]">
-      <legend className="text-ink-soft mb-1.5 text-[13px] font-medium">
-        Dates proposées <span className="font-normal">(fin facultative)</span>
+    <fieldset className="mt-[18px] first:mt-0">
+      <legend className="mb-1.5 text-sm font-semibold">
+        Dates proposées{" "}
+        <span className="text-ink-soft font-normal">· fin facultative, une seule date = date fixée</span>
       </legend>
 
       {dates.map((date, index) => (
@@ -113,7 +116,7 @@ export function DateFieldset({
       ))}
 
       <AddButton onClick={() => setDates((current) => [...current, emptyDate()])}>
-        + Ajouter une date
+        + Proposer une autre date
       </AddButton>
     </fieldset>
   );
@@ -137,16 +140,16 @@ export function BudgetFieldset({
   };
 
   return (
-    <fieldset className="mt-[18px]">
-      <legend className="text-ink-soft mb-1.5 text-[13px] font-medium">
-        Budget par personne <span className="font-normal">(facultatif)</span>
+    <fieldset className="mt-[18px] first:mt-0">
+      <legend className="text-ink-soft mb-3 text-sm">
+        Facultatif : ce que chacun paiera, avancé par toi ou réglé sur place.
       </legend>
 
       {budget.map((line, index) => {
         const losesPayments = Boolean(line.paidCount) && line.mode !== "advance";
 
         return (
-          <div key={line.key} className="border-line-soft mb-2 border-b pb-2 last:border-b-0">
+          <div key={line.key} className="border-line-soft mb-3 border-b pb-3 last:border-b-0">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -198,5 +201,73 @@ export function BudgetFieldset({
         + Ajouter une ligne de budget
       </AddButton>
     </fieldset>
+  );
+}
+
+/** Les icônes montrées d'emblée ; les autres attendent un « Plus ». */
+const FIRST_ROW = 11;
+
+/**
+ * Le choix de l'icône : une grille de tuiles, la choisie cerclée de
+ * terracotta. Les moins courantes sont repliées derrière un bouton, sauf si
+ * l'activité en porte déjà une — elle doit rester visible pour qu'on la voie
+ * sélectionnée.
+ */
+export function IconPicker({ value, onChange }: { value: string; onChange: (key: string) => void }) {
+  const selectedIndex = ACTIVITY_ICONS.findIndex((icon) => icon.key === value);
+  const [expanded, setExpanded] = useState(selectedIndex >= FIRST_ROW);
+  const shown = expanded ? ACTIVITY_ICONS : ACTIVITY_ICONS.slice(0, FIRST_ROW);
+
+  return (
+    <fieldset>
+      <legend className="sr-only">Icône de l&apos;activité</legend>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(56px,1fr))] gap-y-3">
+        {shown.map((icon) => {
+          const selected = icon.key === value;
+          return (
+            <button
+              key={icon.key}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onChange(icon.key)}
+              className="flex flex-col items-center gap-1 text-[11px] font-semibold"
+            >
+              <ActivityIcon
+                name={icon.key}
+                size={48}
+                className={
+                  selected
+                    ? "ring-brick ring-offset-paper-raised ring-2 ring-offset-2"
+                    : "opacity-90 hover:opacity-100"
+                }
+              />
+              <span className={selected ? "text-ink" : "text-ink-soft"}>{icon.label}</span>
+            </button>
+          );
+        })}
+        {!expanded && (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="text-ink-soft flex flex-col items-center gap-1 text-[11px] font-semibold"
+          >
+            <span className="border-line flex size-12 items-center justify-center rounded-[14px] border-[1.5px] border-dashed text-[13px] font-bold">
+              +{ACTIVITY_ICONS.length - FIRST_ROW}
+            </span>
+            Plus
+          </button>
+        )}
+      </div>
+    </fieldset>
+  );
+}
+
+/** Un bloc de formulaire : une carte et son titre. */
+export function FormSection({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <section className="bg-paper-raised mb-4 rounded-[22px] p-5 shadow-[0_1px_0_var(--color-line)]">
+      {title && <h2 className="font-display mb-4 text-[20px] leading-tight font-semibold">{title}</h2>}
+      {children}
+    </section>
   );
 }

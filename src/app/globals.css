@@ -1,27 +1,32 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Design tokens — repris de prototype-app-activites.html
+   Design tokens — piste « Apéro » (planche de design du 27/09) :
+   un fond crème, de la terracotta pour l'action, de la moutarde
+   pour ce qui attend une décision, du vert sauge pour ce qui est
+   acquis. Les noms historiques sont gardés : ils décrivent un
+   rôle (le papier, l'encre, le ton « en vote »…), pas une teinte.
    ============================================================ */
 @theme {
-  --color-paper: #f3f4f1;
-  --color-paper-raised: #ffffff;
-  --color-ink: #22281f;
-  --color-ink-hover: #3a4230;
-  --color-ink-soft: #5b6152;
-  --color-amber: #c98a2b;
-  --color-amber-deep: #8a5c16;
-  --color-amber-pale: #f3e4c6;
-  --color-sage: #6e7f5c;
-  --color-sage-deep: #4a5540;
-  --color-sage-pale: #e1e7d8;
-  --color-brick: #a8493a;
-  --color-brick-deep: #7a3428;
-  --color-brick-pale: #f0e0dd;
-  --color-line: #d6d8d2;
-  --color-line-soft: #e4e5e1;
+  --color-paper: #f7efe3;
+  --color-paper-raised: #fffbf5;
+  --color-paper-sunk: #efe4d4;
+  --color-ink: #2b1d14;
+  --color-ink-hover: #3d2a1e;
+  --color-ink-soft: #735f4f;
+  --color-amber: #e2a93b;
+  --color-amber-deep: #6e4708;
+  --color-amber-pale: #fbe3a8;
+  --color-sage: #5e7a52;
+  --color-sage-deep: #34502b;
+  --color-sage-pale: #dfe7d6;
+  --color-brick: #b8472a;
+  --color-brick-deep: #8f3620;
+  --color-brick-pale: #f8e1d9;
+  --color-line: #e4d3bd;
+  --color-line-soft: #f0e2cf;
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
 }
 
@@ -60,10 +65,11 @@
   textarea,
   select {
     width: 100%;
-    background-color: var(--color-paper);
-    border: 1px solid var(--color-line);
-    border-radius: 6px;
-    padding: 10px 12px;
+    min-height: 48px;
+    background-color: #ffffff;
+    border: 1.5px solid var(--color-line);
+    border-radius: 14px;
+    padding: 10px 14px;
     font-family: var(--font-sans);
     font-size: 14px;
     color: var(--color-ink);
@@ -90,7 +96,7 @@
   input:focus-visible,
   textarea:focus-visible,
   select:focus-visible {
-    outline: 2px solid var(--color-sage);
+    outline: 2px solid var(--color-brick);
     outline-offset: 1px;
   }
 
@@ -101,9 +107,9 @@
 }
 
 @layer components {
-  /* Séparateur de section, façon perforation de ticket. */
+  /* Séparateur de section au sein d'une carte : un trait discret. */
   .perforation {
-    border-top: 1px dashed var(--color-line);
+    border-top: 1px solid var(--color-line-soft);
     margin: 22px 0 18px;
   }
 }

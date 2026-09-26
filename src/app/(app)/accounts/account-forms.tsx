@@ -3,6 +3,7 @@
 import { useActionState, useState, useTransition, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
+import { Avatar } from "@/components/avatar";
 import { AddButton, Card, Field, FormError, PrimaryButton } from "@/components/ui";
 import type { Profile } from "@/lib/database.types";
 import { displayName } from "@/lib/format";
@@ -33,7 +34,7 @@ function Feedback({ state }: { state: AccountState }) {
   if (state.error) return <FormError>{state.error}</FormError>;
   if (state.success) {
     return (
-      <p role="status" className="text-sage-deep bg-sage-pale mt-4 rounded-md px-3 py-2 text-[13px]">
+      <p role="status" className="text-sage-deep bg-sage-pale mt-4 rounded-2xl px-4 py-3 text-sm">
         {state.success}
       </p>
     );
@@ -63,7 +64,7 @@ function PanelButton({
       type="button"
       onClick={onClick}
       aria-expanded={active}
-      className={`rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors ${
+      className={`min-h-[40px] rounded-full border-[1.5px] px-4 text-sm font-semibold transition-colors ${
         active ? "border-ink-soft text-ink" : `border-line ${palette}`
       }`}
     >
@@ -166,21 +167,26 @@ export function AccountCard({ account, isSelf }: { account: Account; isSelf: boo
 
   return (
     <Card className="mb-3">
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <h3 className="font-display text-[17px] font-medium">{displayName(account)}</h3>
-        {account.is_admin && (
-          <span className="text-sage-deep bg-sage-pale rounded-[20px] px-2 py-0.5 text-[11px] font-semibold">
-            Admin
-          </span>
-        )}
-        {isSelf && <span className="text-ink-soft text-[11px]">c&apos;est toi</span>}
-      </div>
+      <div className="flex items-center gap-3">
+        <Avatar person={account} size={44} />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <h3 className="text-base font-bold">{displayName(account)}</h3>
+            {account.is_admin && (
+              <span className="text-sage-deep bg-sage-pale rounded-full px-2.5 py-0.5 text-[12px] font-bold">
+                Admin
+              </span>
+            )}
+            {isSelf && <span className="text-brick text-[12px] font-bold">c&apos;est toi</span>}
+          </div>
 
-      {/* Le titre porte le pseudo, sous lequel le groupe se connaît ; l'état
-          civil et l'adresse sont ici, là où l'admin en a besoin. */}
-      <p className="text-ink-soft mt-1 text-[13px] break-all">
-        {[account.full_name, account.email].filter(Boolean).join(" · ")}
-      </p>
+          {/* Le titre porte le pseudo, sous lequel le groupe se connaît ; l'état
+              civil et l'adresse sont ici, là où l'admin en a besoin. */}
+          <p className="text-ink-soft text-[13px] break-all">
+            {[account.full_name, account.email].filter(Boolean).join(" · ")}
+          </p>
+        </div>
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <PanelButton active={panel === "profile"} onClick={() => toggle("profile")}>
@@ -271,7 +277,7 @@ function DeletePanel({ account, onCancel }: { account: Account; onCancel: () => 
   };
 
   return (
-    <div className="border-brick bg-brick-pale mt-4 rounded-[4px] border p-4">
+    <div className="bg-brick-pale mt-4 rounded-2xl p-4">
       <p className="text-brick-deep text-sm font-medium">
         Supprimer le compte de {displayName(account)} ?
       </p>
@@ -285,7 +291,7 @@ function DeletePanel({ account, onCancel }: { account: Account; onCancel: () => 
           type="button"
           disabled={pending}
           onClick={remove}
-          className="bg-brick-deep rounded-md px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+          className="bg-brick-deep min-h-[48px] rounded-full px-5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {pending ? "Suppression…" : "Oui, supprimer définitivement"}
         </button>
@@ -293,7 +299,7 @@ function DeletePanel({ account, onCancel }: { account: Account; onCancel: () => 
           type="button"
           disabled={pending}
           onClick={onCancel}
-          className="border-line bg-paper-raised text-ink-soft hover:border-ink-soft rounded-md border px-4 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
+          className="border-line text-ink hover:border-ink-soft min-h-[48px] rounded-full border-[1.5px] bg-white px-5 text-sm font-semibold transition-colors disabled:opacity-60"
         >
           Annuler
         </button>

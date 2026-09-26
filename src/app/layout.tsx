@@ -1,20 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Inter } from "next/font/google";
+import { Figtree, Fraunces } from "next/font/google";
 
 import { ServiceWorker } from "@/components/service-worker";
 
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const figtree = Figtree({
+  variable: "--font-figtree",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#f3f4f1",
+  themeColor: "#f7efe3",
   // Nécessaire pour que `env(safe-area-inset-*)` soit renseigné : c'est ce qui
   // empêche la tab bar de passer sous l'indicateur d'accueil de l'iPhone.
   viewportFit: "cover",
@@ -38,7 +38,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fr" className={`${inter.variable} ${fraunces.variable} h-full antialiased`}>
+    <html lang="fr" className={`${figtree.variable} ${fraunces.variable} h-full antialiased`}>
       <body className="min-h-full">
         {children}
         <ServiceWorker />

@@ -7,11 +7,14 @@ import { useState, useTransition } from "react";
 import {
   BudgetFieldset,
   DateFieldset,
+  FormSection,
+  IconPicker,
   newKey,
   type BudgetDraft,
   type DateDraft,
 } from "@/components/activity-fields";
-import { Card, Field, FormError, PrimaryButton, SectionLabel } from "@/components/ui";
+import { ActivityIcon } from "@/components/activity-icon";
+import { Field, FormError, PrimaryButton } from "@/components/ui";
 import type { ActivityStatus } from "@/lib/database.types";
 import { STATUS_LABELS } from "@/lib/format";
 
@@ -22,6 +25,7 @@ export type EditableActivity = {
   title: string;
   description: string | null;
   location: string | null;
+  icon: string;
   start_time: string | null;
   status: ActivityStatus;
   confirmed_date_option_id: string | null;
@@ -42,6 +46,7 @@ export function EditForm({ activity }: { activity: EditableActivity }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
 
+  const [icon, setIcon] = useState(activity.icon);
   const [title, setTitle] = useState(activity.title);
   const [description, setDescription] = useState(activity.description ?? "");
   const [location, setLocation] = useState(activity.location ?? "");
@@ -78,6 +83,7 @@ export function EditForm({ activity }: { activity: EditableActivity }) {
     startTransition(async () => {
       const result = await updateActivity({
         activityId: activity.id,
+        icon,
         title,
         description,
         location,
@@ -115,14 +121,35 @@ export function EditForm({ activity }: { activity: EditableActivity }) {
     >
       <Link
         href={`/activities/${activity.id}`}
-        className="text-ink-soft mb-4 inline-flex items-center gap-1.5 text-[13px]"
+        aria-label="Retour à l'activité"
+        className="bg-paper-raised hover:bg-paper-sunk mb-5 flex size-11 items-center justify-center rounded-full transition-colors"
       >
-        ← Retour à l&apos;activité
+        <svg
+          aria-hidden
+          viewBox="0 0 24 24"
+          width={20}
+          height={20}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+        >
+          <path d="M15 5l-7 7 7 7" />
+        </svg>
       </Link>
 
-      <SectionLabel>Modifier l&apos;activité</SectionLabel>
+      <div className="mb-5 flex items-center gap-3.5">
+        <ActivityIcon name={icon} size={52} />
+        <h1 className="font-display text-[28px] leading-tight font-semibold">
+          Modifier l&apos;activité
+        </h1>
+      </div>
 
-      <Card>
+      <FormSection title="L'icône">
+        <IconPicker value={icon} onChange={setIcon} />
+      </FormSection>
+
+      <FormSection>
         <Field label="Titre">
           <input
             type="text"
@@ -144,23 +171,41 @@ export function EditForm({ activity }: { activity: EditableActivity }) {
         <Field label="Description">
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
+      </FormSection>
 
-        <Field label="Statut">
-          <select value={status} onChange={(e) => setStatus(e.target.value as ActivityStatus)}>
-            {STATUS_ORDER.map((value) => (
-              <option key={value} value={value} disabled={value === "confirmed" && !confirmedStillThere}>
+      <FormSection title="Statut">
+        <div role="radiogroup" aria-label="Statut" className="flex flex-wrap gap-2">
+          {STATUS_ORDER.map((value) => {
+            const disabled = value === "confirmed" && !confirmedStillThere;
+            const selected = status === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                disabled={disabled}
+                onClick={() => setStatus(value)}
+                className={`min-h-[44px] rounded-full border-2 px-4 text-sm font-semibold transition-colors disabled:opacity-40 ${
+                  selected
+                    ? "border-brick bg-brick-pale"
+                    : "border-line enabled:hover:border-ink-soft bg-transparent"
+                }`}
+              >
                 {STATUS_LABELS[value]}
-              </option>
-            ))}
-          </select>
-          {!confirmedStillThere && (
-            <p className="text-ink-soft mt-1 text-[12px]">
-              « Date fixée » demande un créneau retenu — confirme-le depuis la page de
-              l&apos;activité.
-            </p>
-          )}
-        </Field>
+              </button>
+            );
+          })}
+        </div>
+        {!confirmedStillThere && (
+          <p className="text-ink-soft mt-3 text-[13px]">
+            « Date fixée » demande un créneau retenu — choisis-le depuis la page de
+            l&apos;activité.
+          </p>
+        )}
+      </FormSection>
 
+      <FormSection title="Quand ?">
         <DateFieldset
           dates={dates}
           setDates={setDates}
@@ -170,26 +215,28 @@ export function EditForm({ activity }: { activity: EditableActivity }) {
 
         <Field label="Heure (facultatif)">
           <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-          <span className="text-ink-soft mt-1 block text-[12px]">
+          <span className="text-ink-soft mt-1.5 block text-[13px]">
             Vaut pour toutes les dates proposées.
           </span>
         </Field>
+      </FormSection>
 
+      <FormSection title="Budget par personne">
         <BudgetFieldset
           budget={budget}
           setBudget={setBudget}
           onRemove={(line) => line.id && setDeletedBudgetIds((ids) => [...ids, line.id!])}
         />
+      </FormSection>
 
-        <FormError>{error}</FormError>
+      <FormError>{error}</FormError>
 
-        <PrimaryButton type="submit" disabled={pending}>
-          {pending ? "Enregistrement…" : "Enregistrer les modifications"}
-        </PrimaryButton>
-      </Card>
+      <PrimaryButton type="submit" disabled={pending}>
+        {pending ? "Enregistrement…" : "Enregistrer les modifications"}
+      </PrimaryButton>
 
-      <p className="text-ink-soft mt-4 text-[12px]">
-        Les participants se gèrent depuis la page de l&apos;activité.
+      <p className="text-ink-soft mt-4 text-center text-[13px]">
+        Les invités se gèrent depuis la page de l&apos;activité.
       </p>
     </form>
   );

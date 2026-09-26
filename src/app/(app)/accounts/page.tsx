@@ -50,7 +50,10 @@ export default async function AccountsPage() {
 
   return (
     <>
-      <SectionLabel>{plural(accounts.length, "compte")} dans le groupe</SectionLabel>
+      <header className="mb-6">
+        <h1 className="font-display text-[32px] leading-tight font-semibold">Comptes</h1>
+        <p className="text-ink-soft text-[15px]">{plural(accounts.length, "compte")} dans le groupe</p>
+      </header>
 
       {!hasAdminKey() && (
         <Card className="mb-3">
@@ -68,9 +71,10 @@ export default async function AccountsPage() {
         <AccountCard key={account.id} account={account} isSelf={account.id === profile.id} />
       ))}
 
-      <div className="perforation" />
-      <SectionLabel>Nouveau compte</SectionLabel>
-      <CreateAccount />
+      <div className="mt-7">
+        <SectionLabel>Nouveau compte</SectionLabel>
+        <CreateAccount />
+      </div>
     </>
   );
 }

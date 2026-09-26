@@ -65,6 +65,16 @@ export function formatWhen(
   return time ? `${range} à ${formatTime(time)}` : range;
 }
 
+const parisDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" });
+
+/**
+ * Le jour qu'il est à Paris, en `YYYY-MM-DD`. Le serveur tourne en UTC : entre
+ * minuit et 2 h, `toISOString()` y donnerait encore la veille.
+ */
+export function todayInParis(now = new Date()) {
+  return parisDay.format(now);
+}
+
 const euros = new Intl.NumberFormat("fr-FR", {
   style: "currency",
   currency: "EUR",
