@@ -51,6 +51,9 @@ create table activities (
   description text,
   -- Où l'on se retrouve. Vivait dans la description, mélangé au reste.
   location text,
+  -- À quelle heure, facultatif. Une seule pour tous les créneaux
+  -- proposés ; pour un séjour, l'heure du départ.
+  start_time time,
   status text not null default 'voting'
     check (status in ('voting', 'confirmed', 'completed', 'cancelled')),
   confirmed_date_option_id uuid,  -- FK ajoutée après date_options (références croisées)

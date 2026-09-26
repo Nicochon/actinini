@@ -24,6 +24,7 @@ export function ActivityForm({ people }: { people: Pick<Profile, "id" | "full_na
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
+  const [time, setTime] = useState("");
   const [dates, setDates] = useState<DateDraft[]>([emptyDate()]);
   const [budget, setBudget] = useState<BudgetDraft[]>([]);
   const [participantIds, setParticipantIds] = useState<string[]>([]);
@@ -40,6 +41,7 @@ export function ActivityForm({ people }: { people: Pick<Profile, "id" | "full_na
         title,
         description,
         location,
+        time,
         dates: dates.map(({ start, end }) => ({ start, end })),
         budget: budget.map(({ label, amount, mode }) => ({ label, amount, mode })),
         participantIds,
@@ -91,6 +93,13 @@ export function ActivityForm({ people }: { people: Pick<Profile, "id" | "full_na
         </Field>
 
         <DateFieldset dates={dates} setDates={setDates} />
+
+        <Field label="Heure (facultatif)">
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          <span className="text-ink-soft mt-1 block text-[12px]">
+            Vaut pour toutes les dates proposées.
+          </span>
+        </Field>
         <BudgetFieldset budget={budget} setBudget={setBudget} />
 
         <fieldset className="mt-[18px]">

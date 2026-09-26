@@ -25,6 +25,8 @@ export type Activity = {
   description: string | null;
   /** Où l'on se retrouve. */
   location: string | null;
+  /** « 20:00:00 », facultatif. Vaut pour tous les créneaux proposés. */
+  start_time: string | null;
   status: ActivityStatus;
   confirmed_date_option_id: string | null;
   created_by: string;
@@ -122,7 +124,7 @@ export type Database = {
       activities: Table<
         Activity,
         Pick<Activity, "title" | "created_by"> &
-          Partial<Pick<Activity, "id" | "description" | "location" | "status">>
+          Partial<Pick<Activity, "id" | "description" | "location" | "start_time" | "status">>
       > & {
         Relationships: [
           {

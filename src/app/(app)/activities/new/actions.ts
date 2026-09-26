@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
-import { parseBudget, parseDates } from "@/lib/activity-input";
+import { parseBudget, parseDates, parseTime } from "@/lib/activity-input";
 import type { PaymentMode } from "@/lib/database.types";
-import { displayName, formatDateRange } from "@/lib/format";
+import { displayName, formatWhen } from "@/lib/format";
 import { notifyActivityParticipants } from "@/lib/push";
 import { requireProfile } from "@/lib/session";
 
@@ -13,6 +13,8 @@ export type NewActivityInput = {
   title: string;
   description: string;
   location: string;
+  /** « 20:00 », vide = pas d'heure. */
+  time: string;
   /** `end` vide = journée unique. */
   dates: { start: string; end: string }[];
   budget: { label: string; amount: string; mode: PaymentMode }[];
@@ -26,6 +28,9 @@ export async function createActivity(input: NewActivityInput): Promise<CreateRes
 
   const title = String(input.title ?? "").trim();
   if (!title) return { error: "Donne un titre à l'activité." };
+
+  const parsedTime = parseTime(input.time);
+  if (!parsedTime.ok) return { error: parsedTime.error };
 
   const parsedDates = parseDates(input.dates);
   if (!parsedDates.ok) return { error: parsedDates.error };
@@ -46,6 +51,7 @@ export async function createActivity(input: NewActivityInput): Promise<CreateRes
       title,
       description: String(input.description ?? "").trim() || null,
       location: String(input.location ?? "").trim() || null,
+      start_time: parsedTime.value,
       created_by: profile.id,
     })
     .select("id")
@@ -102,7 +108,7 @@ export async function createActivity(input: NewActivityInput): Promise<CreateRes
   // aucune notification « Date fixée » ne suivra, elle figure donc ici.
   const lone =
     dates.length === 1
-      ? ` — ${formatDateRange({ start_date: dates[0].start, end_date: dates[0].end })}`
+      ? ` — ${formatWhen({ start_date: dates[0].start, end_date: dates[0].end }, parsedTime.value)}`
       : "";
   after(async () => {
     await notifyActivityParticipants(supabase, activity.id, {

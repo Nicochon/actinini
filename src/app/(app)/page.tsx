@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Calendar, type CalendarEvent } from "@/components/calendar";
 import { Stamp } from "@/components/ui";
 import type { ActivityStatus, DateOption } from "@/lib/database.types";
-import { formatDateRange, plural } from "@/lib/format";
+import { formatWhen, plural } from "@/lib/format";
 import { requireProfile } from "@/lib/session";
 
 type ActivityRow = {
@@ -11,6 +11,7 @@ type ActivityRow = {
   title: string;
   status: ActivityStatus;
   created_at: string;
+  start_time: string | null;
   confirmed_date_option_id: string | null;
   confirmed_date: Pick<DateOption, "start_date" | "end_date"> | null;
   activity_participants: { profile_id: string; declined: boolean }[];
@@ -65,7 +66,7 @@ function ActivityCard({ activity }: { activity: ActivityRow }) {
         ? "Aucun participant"
         : plural(attendees, "participant");
 
-  const meta = [people, activity.confirmed_date && formatDateRange(activity.confirmed_date)].filter(
+  const meta = [people, activity.confirmed_date && formatWhen(activity.confirmed_date, activity.start_time)].filter(
     Boolean,
   );
 
@@ -90,7 +91,7 @@ export default async function ActivitiesPage() {
   const { data, error } = await supabase
     .from("activities")
     .select(
-      `id, title, status, created_at, confirmed_date_option_id,
+      `id, title, status, created_at, start_time, confirmed_date_option_id,
        confirmed_date:date_options!activities_confirmed_date_option_fkey(start_date, end_date),
        activity_participants(profile_id, declined),
        date_options!date_options_activity_id_fkey(id, start_date, end_date),

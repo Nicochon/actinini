@@ -20,6 +20,16 @@ export type ParsedBudget = { id?: string; label: string; amount: number; mode: P
 
 export type Parsed<T> = { ok: true; value: T } | { ok: false; error: string };
 
+const TIME = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+
+/** L'heure, facultative : vide donne null. Le navigateur envoie « 20:00 ». */
+export function parseTime(raw: unknown): Parsed<string | null> {
+  const value = text(raw);
+  if (!value) return { ok: true, value: null };
+  if (!TIME.test(value)) return { ok: false, error: "L'heure est invalide." };
+  return { ok: true, value: value.slice(0, 5) };
+}
+
 /** Ignore les lignes laissées vides : un créneau sans date de début n'existe pas. */
 export function parseDates(raw: unknown): Parsed<ParsedDate[]> {
   if (!Array.isArray(raw)) return { ok: false, error: "Dates proposées illisibles." };

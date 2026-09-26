@@ -12,7 +12,7 @@ import type {
 } from "@/lib/database.types";
 import {
   displayName,
-  formatDateRange,
+  formatWhen,
   formatEuros,
   joinNames,
   plural,
@@ -41,6 +41,7 @@ type ActivityDetail = Pick<
   | "title"
   | "description"
   | "location"
+  | "start_time"
   | "status"
   | "confirmed_date_option_id"
   | "created_by"
@@ -80,7 +81,7 @@ export default async function ActivityDetailPage({
     supabase
       .from("activities")
       .select(
-        `id, title, description, location, status, confirmed_date_option_id, created_by, reminded_at,
+        `id, title, description, location, start_time, status, confirmed_date_option_id, created_by, reminded_at,
          organiser:profiles!activities_created_by_fkey(pseudo, full_name, payment_info)`,
       )
       .eq("id", id)
@@ -318,7 +319,7 @@ export default async function ActivityDetailPage({
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-sm font-medium">
-                      {formatDateRange(option)}
+                      {formatWhen(option, activity.start_time)}
                       {isConfirmed && (
                         <span className="text-sage-deep ml-2 text-[12px] font-semibold">
                           · date retenue

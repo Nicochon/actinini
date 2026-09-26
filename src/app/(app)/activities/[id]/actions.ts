@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
 import type { Database } from "@/lib/database.types";
-import { displayName, formatDateRange } from "@/lib/format";
+import { displayName, formatWhen } from "@/lib/format";
 import { notifyActivityParticipants, notifyParticipant } from "@/lib/push";
 import { awaitingIds, formatReminderTime, nextReminderAt } from "@/lib/reminders";
 import { requireProfile } from "@/lib/session";
@@ -102,7 +102,7 @@ export async function confirmDate(activityId: string, dateOptionId: string): Pro
 
   const { data: before } = await supabase
     .from("activities")
-    .select("title, confirmed_date_option_id")
+    .select("title, start_time, confirmed_date_option_id")
     .eq("id", activityId)
     .maybeSingle();
 
@@ -116,7 +116,7 @@ export async function confirmDate(activityId: string, dateOptionId: string): Pro
   // Reconfirmer le même créneau ne prévient personne une seconde fois.
   if (before && before.confirmed_date_option_id !== dateOptionId) {
     after(async () => {
-      const date = await dateLabel(supabase, dateOptionId);
+      const date = await dateLabel(supabase, dateOptionId, before.start_time);
       if (!date) return;
       await notifyActivityParticipants(supabase, activityId, {
         title: "Date fixée",
@@ -162,13 +162,13 @@ export async function addParticipant(activityId: string, profileId: string): Pro
   after(async () => {
     const { data: activity } = await supabase
       .from("activities")
-      .select("title, confirmed_date_option_id")
+      .select("title, start_time, confirmed_date_option_id")
       .eq("id", activityId)
       .maybeSingle();
     if (!activity) return;
 
     const date = activity.confirmed_date_option_id
-      ? await dateLabel(supabase, activity.confirmed_date_option_id)
+      ? await dateLabel(supabase, activity.confirmed_date_option_id, activity.start_time)
       : null;
 
     await notifyParticipant(supabase, activityId, profileId, {
@@ -195,7 +195,7 @@ export async function remindAwaiting(activityId: string): Promise<ActionResult> 
 
   const { data: activity } = await supabase
     .from("activities")
-    .select("title, status, confirmed_date_option_id, created_by, reminded_at")
+    .select("title, start_time, status, confirmed_date_option_id, created_by, reminded_at")
     .eq("id", activityId)
     .maybeSingle();
 
@@ -226,7 +226,7 @@ export async function remindAwaiting(activityId: string): Promise<ActionResult> 
 
   after(async () => {
     const date = activity.confirmed_date_option_id
-      ? await dateLabel(supabase, activity.confirmed_date_option_id)
+      ? await dateLabel(supabase, activity.confirmed_date_option_id, activity.start_time)
       : null;
     const body = date
       ? `${activity.title} — ${date}. Tu viens ?`
@@ -267,15 +267,16 @@ export async function removeParticipant(
   return {};
 }
 
-/** « mar. 29 septembre » pour un créneau, ou null s'il a disparu entre-temps. */
+/** « mar. 29 septembre à 20h » pour un créneau, ou null s'il a disparu entre-temps. */
 async function dateLabel(
   supabase: SupabaseClient<Database>,
   dateOptionId: string,
+  time: string | null,
 ): Promise<string | null> {
   const { data } = await supabase
     .from("date_options")
     .select("start_date, end_date")
     .eq("id", dateOptionId)
     .maybeSingle();
-  return data ? formatDateRange(data) : null;
+  return data ? formatWhen(data, time) : null;
 }

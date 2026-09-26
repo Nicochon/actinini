@@ -22,6 +22,7 @@ export type EditableActivity = {
   title: string;
   description: string | null;
   location: string | null;
+  start_time: string | null;
   status: ActivityStatus;
   confirmed_date_option_id: string | null;
   dates: { id: string; start_date: string; end_date: string | null }[];
@@ -44,6 +45,8 @@ export function EditForm({ activity }: { activity: EditableActivity }) {
   const [title, setTitle] = useState(activity.title);
   const [description, setDescription] = useState(activity.description ?? "");
   const [location, setLocation] = useState(activity.location ?? "");
+  // Postgres rend « 20:00:00 », le champ attend « 20:00 ».
+  const [time, setTime] = useState(activity.start_time?.slice(0, 5) ?? "");
   const [status, setStatus] = useState<ActivityStatus>(activity.status);
 
   const [dates, setDates] = useState<DateDraft[]>(() =>
@@ -78,6 +81,7 @@ export function EditForm({ activity }: { activity: EditableActivity }) {
         title,
         description,
         location,
+        time,
         status,
         dates: dates.map(({ id, start, end }) => ({ id, start, end })),
         budget: budget.map(({ id, label, amount, mode }) => ({ id, label, amount, mode })),
@@ -163,6 +167,13 @@ export function EditForm({ activity }: { activity: EditableActivity }) {
           confirmedDateOptionId={activity.confirmed_date_option_id}
           onRemove={(date) => date.id && setDeletedDateIds((ids) => [...ids, date.id!])}
         />
+
+        <Field label="Heure (facultatif)">
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          <span className="text-ink-soft mt-1 block text-[12px]">
+            Vaut pour toutes les dates proposées.
+          </span>
+        </Field>
 
         <BudgetFieldset
           budget={budget}

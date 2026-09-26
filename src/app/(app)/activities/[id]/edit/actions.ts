@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { parseBudget, parseDates, parseIds } from "@/lib/activity-input";
+import { parseBudget, parseDates, parseIds, parseTime } from "@/lib/activity-input";
 import type { ActivityStatus, PaymentMode } from "@/lib/database.types";
 import { requireProfile } from "@/lib/session";
 
@@ -12,6 +12,8 @@ export type EditActivityInput = {
   title: string;
   description: string;
   location: string;
+  /** « 20:00 », vide = pas d'heure. */
+  time: string;
   status: ActivityStatus;
   /** `id` absent = nouveau créneau. */
   dates: { id?: string; start: string; end: string }[];
@@ -37,6 +39,9 @@ export async function updateActivity(input: EditActivityInput): Promise<EditResu
   const title = String(input.title ?? "").trim();
   if (!title) return { error: "Le titre ne peut pas être vide." };
   if (!STATUSES.includes(input.status)) return { error: "Statut inconnu." };
+
+  const parsedTime = parseTime(input.time);
+  if (!parsedTime.ok) return { error: parsedTime.error };
 
   const parsedDates = parseDates(input.dates);
   if (!parsedDates.ok) return { error: parsedDates.error };
@@ -93,6 +98,7 @@ export async function updateActivity(input: EditActivityInput): Promise<EditResu
       title,
       description: String(input.description ?? "").trim() || null,
       location: String(input.location ?? "").trim() || null,
+      start_time: parsedTime.value,
       status,
     })
     .eq("id", input.activityId);

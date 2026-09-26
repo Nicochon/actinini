@@ -50,6 +50,21 @@ export function formatDateRange({ start_date, end_date }: Pick<DateOption, "star
   return `${left} au ${right}`;
 }
 
+/** « 20h », « 20h30 ». Postgres rend « 20:00:00 », le formulaire « 20:00 ». */
+export function formatTime(time: string) {
+  const [hours, minutes] = time.split(":");
+  return `${Number(hours)}h${minutes === "00" ? "" : minutes}`;
+}
+
+/** Le créneau, suivi de l'heure si elle est connue : « mar. 29 septembre à 20h ». */
+export function formatWhen(
+  option: Pick<DateOption, "start_date" | "end_date">,
+  time: string | null | undefined,
+) {
+  const range = formatDateRange(option);
+  return time ? `${range} à ${formatTime(time)}` : range;
+}
+
 const euros = new Intl.NumberFormat("fr-FR", {
   style: "currency",
   currency: "EUR",
