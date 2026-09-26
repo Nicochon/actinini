@@ -183,6 +183,7 @@ export default async function ActivityDetailPage({
     participantRows.map((row) => ({ profile_id: row.profile.id, declined: row.declined })),
     votes,
     attendanceDateId,
+    activity.created_by,
   ).length;
   const nextReminder = nextReminderAt(activity.reminded_at);
 

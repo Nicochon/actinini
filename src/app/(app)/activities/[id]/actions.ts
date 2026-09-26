@@ -214,7 +214,12 @@ export async function remindAwaiting(activityId: string): Promise<ActionResult> 
     supabase.from("activity_participants").select("profile_id, declined").eq("activity_id", activityId),
     supabase.from("votes").select("date_option_id, profile_id").eq("activity_id", activityId),
   ]);
-  const targets = awaitingIds(participants ?? [], votes ?? [], activity.confirmed_date_option_id);
+  const targets = awaitingIds(
+    participants ?? [],
+    votes ?? [],
+    activity.confirmed_date_option_id,
+    activity.created_by,
+  );
   if (targets.length === 0) return { error: "Tout le monde a déjà répondu." };
 
   // Noté avant l'envoi : un second clic pendant qu'il part est refusé.

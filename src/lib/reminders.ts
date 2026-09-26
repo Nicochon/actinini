@@ -9,7 +9,8 @@
 export const REMINDER_COOLDOWN_MS = 12 * 3600 * 1000;
 
 /**
- * Qui n'a pas répondu. Un refus est une réponse.
+ * Qui n'a pas répondu. Un refus est une réponse, et l'organisateur, invité de
+ * sa propre sortie, ne se relance pas lui-même.
  *
  * Date fixée : n'a pas voté pour elle — ceux de « En attente de réponse ».
  * Vote en cours : n'a voté pour aucun créneau.
@@ -18,6 +19,7 @@ export function awaitingIds(
   participants: { profile_id: string; declined: boolean }[],
   votes: { date_option_id: string; profile_id: string }[],
   confirmedDateId: string | null,
+  organiserId: string,
 ): string[] {
   const answered = new Set(
     votes
@@ -25,7 +27,7 @@ export function awaitingIds(
       .map((v) => v.profile_id),
   );
   return participants
-    .filter((p) => !p.declined && !answered.has(p.profile_id))
+    .filter((p) => p.profile_id !== organiserId && !p.declined && !answered.has(p.profile_id))
     .map((p) => p.profile_id);
 }
 
